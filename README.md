@@ -25,7 +25,7 @@ Using these capabilities, it is quite straightforward to expose a `get-and-incr`
 - Poor performance  
   Since every operation requires communication between nodes, most of the time is spent in costly network IO.
 - Uneven workload distribution  
-  Due to the nature of the Leader/Follower model; a single node, the leader, is charged of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).
+  Due to the nature of the Leader/Follower model; a single node, the leader, is in charge of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).
 
 **Further reading**:
 

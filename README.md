@@ -15,14 +15,18 @@ Using these capabilities, it is quite straightforward to expose a `get-and-incr`
 
 **pros**:
 
-- Strong consistency & sequentiality guarantees
+- Strong consistency & sequentiality guarantees  
   Using a quorum, the system can A) guarantee the sequentiality of the IDs returned over time, and B) assure that there is no "holes" in the sequence.
-- Good fault-tolerancy guarantees
+- Good fault-tolerancy guarantees  
   The system can and will stay available as long as 2N+1 nodes are still available.
 
 **cons**:
 
-- Poor performance
+- Poor performance  
   Since every operation requires communication between nodes, most of the time is spent in costly network IO.
-- Uneven workload distribution
+- Uneven workload distribution  
   Due to the nature of the Leader/Follower model; a single node, the leader, is charged of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).
+
+### Consensus protocols + client-side caching
+
+A simple enhancement to the 

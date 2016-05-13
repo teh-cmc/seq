@@ -14,3 +14,7 @@ func TestSimpleBufSeq_New_BufSize(t *testing.T) {
 	ensure.DeepEqual(t, cap(NewSimpleBufSeq(1)), 1)
 	ensure.DeepEqual(t, cap(NewSimpleBufSeq(1e6)), int(1e6))
 }
+
+func TestSimpleBufSeq_FirstID(t *testing.T) {
+	ensure.DeepEqual(t, <-NewSimpleBufSeq(1e2).GetStream(), ID(1))
+}

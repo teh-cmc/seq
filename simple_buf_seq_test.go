@@ -34,3 +34,32 @@ func TestSimpleBufSeq_SingleClient(t *testing.T) {
 		lastID = id
 	}
 }
+
+func TestSimpleBufSeq_MultiClient(t *testing.T) {
+	seq := NewSimpleBufSeq(1024)
+	lastID := ID(0)
+
+	go func() {
+		<-time.After(time.Millisecond * 250)
+		_ = seq.Close()
+	}()
+
+	s1, s2, s3 := seq.GetStream(), seq.GetStream(), seq.GetStream()
+	for {
+		id1 := s1.Next()
+		if id1 == 0 {
+			break
+		}
+		ensure.DeepEqual(t, id1, lastID+1)
+		id2 := s2.Next()
+		if id2 == 0 {
+			break
+		}
+		ensure.DeepEqual(t, id2, id1+1)
+		id3 := s3.Next()
+		if id3 == 0 {
+			break
+		}
+		ensure.DeepEqual(t, id3, id2+1)
+	}
+}

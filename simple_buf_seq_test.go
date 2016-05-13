@@ -24,8 +24,10 @@ func TestSimpleBufSeq_FirstID(t *testing.T) {
 	ensure.DeepEqual(t, <-NewSimpleBufSeq(1e2).GetStream(), ID(1))
 }
 
-func TestSimpleBufSeq_SingleClient(t *testing.T) {
-	seq := NewSimpleBufSeq(1024)
+// -----------------------------------------------------------------------------
+
+func testSimpleBufSeq_SingleClient(bufSize int, t *testing.T) {
+	seq := NewSimpleBufSeq(bufSize)
 	lastID := ID(0)
 
 	go func() {
@@ -39,8 +41,22 @@ func TestSimpleBufSeq_SingleClient(t *testing.T) {
 	}
 }
 
-func TestSimpleBufSeq_MultiClient(t *testing.T) {
-	seq := NewSimpleBufSeq(1024)
+func TestSimpleBufSeq_BufSize0_SingleClient(t *testing.T) {
+	testSimpleBufSeq_SingleClient(0, t)
+}
+
+func TestSimpleBufSeq_BufSize1_SingleClient(t *testing.T) {
+	testSimpleBufSeq_SingleClient(1, t)
+}
+
+func TestSimpleBufSeq_BufSize1024_SingleClient(t *testing.T) {
+	testSimpleBufSeq_SingleClient(1024, t)
+}
+
+// -----------------------------------------------------------------------------
+
+func testSimpleBufSeq_MultiClient(bufSize int, t *testing.T) {
+	seq := NewSimpleBufSeq(bufSize)
 	lastID := ID(0)
 
 	go func() {
@@ -71,8 +87,22 @@ func TestSimpleBufSeq_MultiClient(t *testing.T) {
 	}
 }
 
-func TestSimpleBufSeq_ConcurrentClients256(t *testing.T) {
-	seq := NewSimpleBufSeq(1024)
+func TestSimpleBufSeq_BufSize0_MultiClient(t *testing.T) {
+	testSimpleBufSeq_MultiClient(0, t)
+}
+
+func TestSimpleBufSeq_BufSize1_MultiClient(t *testing.T) {
+	testSimpleBufSeq_MultiClient(1, t)
+}
+
+func TestSimpleBufSeq_BufSize1024_MultiClient(t *testing.T) {
+	testSimpleBufSeq_MultiClient(1024, t)
+}
+
+// -----------------------------------------------------------------------------
+
+func testSimpleBufSeq_ConcurrentClients256(bufSize int, t *testing.T) {
+	seq := NewSimpleBufSeq(bufSize)
 
 	go func() {
 		<-time.After(time.Millisecond * 250)
@@ -90,6 +120,18 @@ func TestSimpleBufSeq_ConcurrentClients256(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestSimpleBufSeq_BufSize0_ConcurrentClients256(t *testing.T) {
+	testSimpleBufSeq_ConcurrentClients256(0, t)
+}
+
+func TestSimpleBufSeq_BufSize1_ConcurrentClients256(t *testing.T) {
+	testSimpleBufSeq_ConcurrentClients256(1, t)
+}
+
+func TestSimpleBufSeq_BufSize1024_ConcurrentClients256(t *testing.T) {
+	testSimpleBufSeq_ConcurrentClients256(1024, t)
 }
 
 // -----------------------------------------------------------------------------

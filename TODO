@@ -1,0 +1,5 @@
+README
+    the read-repair strategy -> fsync-ing
+    the read-repair strategy + client-side range caching
+    the flake model
+    polish

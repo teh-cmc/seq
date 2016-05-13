@@ -90,3 +90,14 @@ func TestSimpleBufSeq_ConcurrentClients256(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// -----------------------------------------------------------------------------
+
+// NOTE: run these benchmarks with `go test -bench=. -cpu 1,8,32`
+
+func BenchmarkSimpleBufSeq_BufSize1024_SingleClient(b *testing.B) {
+	s := NewSimpleBufSeq(1024).GetStream()
+	for i := 0; i < b.N; i++ {
+		_ = s.Next()
+	}
+}

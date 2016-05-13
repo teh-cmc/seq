@@ -1,4 +1,4 @@
-package seq
+package nbs
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/facebookgo/ensure"
+	"github.com/teh-cmc/seq"
 )
 
 // -----------------------------------------------------------------------------
@@ -21,21 +22,21 @@ func TestSimpleBufSeq_New_BufSize(t *testing.T) {
 }
 
 func TestSimpleBufSeq_FirstID(t *testing.T) {
-	ensure.DeepEqual(t, <-NewSimpleBufSeq(1e2).GetStream(), ID(1))
+	ensure.DeepEqual(t, <-NewSimpleBufSeq(1e2).GetStream(), seq.ID(1))
 }
 
 // -----------------------------------------------------------------------------
 
 func testSimpleBufSeq_SingleClient(bufSize int, t *testing.T) {
-	seq := NewSimpleBufSeq(bufSize)
-	lastID := ID(0)
+	s := NewSimpleBufSeq(bufSize)
+	lastID := seq.ID(0)
 
 	go func() {
 		<-time.After(time.Millisecond * 250)
-		_ = seq.Close()
+		_ = s.Close()
 	}()
 
-	for id := range seq.GetStream() {
+	for id := range s.GetStream() {
 		ensure.DeepEqual(t, id, lastID+1)
 		lastID = id
 	}
@@ -56,15 +57,15 @@ func TestSimpleBufSeq_BufSize1024_SingleClient(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func testSimpleBufSeq_MultiClient(bufSize int, t *testing.T) {
-	seq := NewSimpleBufSeq(bufSize)
-	lastID := ID(0)
+	s := NewSimpleBufSeq(bufSize)
+	lastID := seq.ID(0)
 
 	go func() {
 		<-time.After(time.Millisecond * 250)
-		_ = seq.Close()
+		_ = s.Close()
 	}()
 
-	s1, s2, s3 := seq.GetStream(), seq.GetStream(), seq.GetStream()
+	s1, s2, s3 := s.GetStream(), s.GetStream(), s.GetStream()
 	for {
 		id1 := s1.Next()
 		if id1 == 0 {
@@ -184,13 +185,13 @@ func BenchmarkSimpleBufSeq_BufSize1024_MultiClient(b *testing.B) {
 // -----------------------------------------------------------------------------
 
 func ExampleSimpleBufSeq() {
-	seq := NewSimpleBufSeq(2)
+	s := NewSimpleBufSeq(2)
 
-	ids := make([]ID, 0)
-	for id := range seq.GetStream() {
+	ids := make([]seq.ID, 0)
+	for id := range s.GetStream() {
 		ids = append(ids, id)
 		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
-			seq.Close()
+			s.Close()
 		}
 	}
 	fmt.Println(ids)

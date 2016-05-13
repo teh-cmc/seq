@@ -1,6 +1,10 @@
-package seq
+package nbs
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/teh-cmc/seq"
+)
 
 // -----------------------------------------------------------------------------
 
@@ -11,7 +15,7 @@ import "sync"
 // a good performance baseline that can be used as a point of comparison for
 // more complex implementations.
 type SimpleBufSeq struct {
-	ids chan ID
+	ids chan seq.ID
 
 	stop chan struct{}
 	wg   *sync.WaitGroup
@@ -28,9 +32,9 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 		bufSize = 0
 	}
 
-	ids := make(chan ID, bufSize)
+	ids := make(chan seq.ID, bufSize)
 	stop := make(chan struct{}, 0)
-	id := ID(1)
+	id := seq.ID(1)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -51,7 +55,7 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 
 // GetStream returns a pre-buffered, range-able stream of monotonically
 // increasing IDs, starting at 1.
-func (ss SimpleBufSeq) GetStream() IDStream { return ss.ids }
+func (ss SimpleBufSeq) GetStream() seq.IDStream { return ss.ids }
 
 // Close closes the associated `IDStream`.
 // It always returns `nil`.

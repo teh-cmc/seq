@@ -1,6 +1,7 @@
 package seq
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 )
 
 // -----------------------------------------------------------------------------
+
+// NOTE: run these tests with `go test -race -cpu 1,8,32`
 
 func TestSimpleBufSeq_New_BufSize(t *testing.T) {
 	ensure.DeepEqual(t, cap(NewSimpleBufSeq(-42)), 0)
@@ -62,4 +65,25 @@ func TestSimpleBufSeq_MultiClient(t *testing.T) {
 		}
 		ensure.DeepEqual(t, id3, id2+1)
 	}
+}
+
+func TestSimpleBufSeq_ConcurrentClients256(t *testing.T) {
+	seq := NewSimpleBufSeq(1024)
+
+	go func() {
+		<-time.After(time.Millisecond * 250)
+		_ = seq.Close()
+	}()
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 256; i++ {
+		wg.Add(1)
+		go func() {
+			for id := range seq.GetStream() {
+				_ = id
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }

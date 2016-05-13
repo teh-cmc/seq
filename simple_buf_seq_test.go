@@ -1,6 +1,7 @@
 package seq
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -110,4 +111,21 @@ func BenchmarkSimpleBufSeq_BufSize1024_MultiClient(b *testing.B) {
 			_ = ids.Next()
 		}
 	})
+}
+
+// -----------------------------------------------------------------------------
+
+func ExampleSimpleBufSeq() {
+	seq := NewSimpleBufSeq(2)
+
+	ids := make([]ID, 0)
+	for id := range seq.GetStream() {
+		ids = append(ids, id)
+		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
+			seq.Close()
+		}
+	}
+	fmt.Println(ids)
+
+	// Output: [1 2 3 4 5 6 7 8 9 10 11 12]
 }

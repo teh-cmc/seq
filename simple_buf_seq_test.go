@@ -138,21 +138,47 @@ func TestSimpleBufSeq_BufSize1024_ConcurrentClients256(t *testing.T) {
 
 // NOTE: run these benchmarks with `go test -run=none -bench=. -cpu 1,8,32`
 
-func BenchmarkSimpleBufSeq_BufSize1024_SingleClient(b *testing.B) {
-	s := NewSimpleBufSeq(1024).GetStream()
+func benchmarkSimpleBufSeq_SingleClient(bufSize int, b *testing.B) {
+	s := NewSimpleBufSeq(bufSize).GetStream()
 	for i := 0; i < b.N; i++ {
 		_ = s.Next()
 	}
 }
 
-func BenchmarkSimpleBufSeq_BufSize1024_MultiClient(b *testing.B) {
-	s := NewSimpleBufSeq(1024)
+func BenchmarkSimpleBufSeq_BufSize0_SingleClient(b *testing.B) {
+	benchmarkSimpleBufSeq_SingleClient(0, b)
+}
+
+func BenchmarkSimpleBufSeq_BufSize1_SingleClient(b *testing.B) {
+	benchmarkSimpleBufSeq_SingleClient(1, b)
+}
+
+func BenchmarkSimpleBufSeq_BufSize1024_SingleClient(b *testing.B) {
+	benchmarkSimpleBufSeq_SingleClient(1024, b)
+}
+
+// -----------------------------------------------------------------------------
+
+func benchmarkSimpleBufSeq_MultiClient(bufSize int, b *testing.B) {
+	s := NewSimpleBufSeq(bufSize)
 	b.RunParallel(func(pb *testing.PB) {
 		ids := s.GetStream()
 		for pb.Next() {
 			_ = ids.Next()
 		}
 	})
+}
+
+func BenchmarkSimpleBufSeq_BufSize0_MultiClient(b *testing.B) {
+	benchmarkSimpleBufSeq_MultiClient(0, b)
+}
+
+func BenchmarkSimpleBufSeq_BufSize1_MultiClient(b *testing.B) {
+	benchmarkSimpleBufSeq_MultiClient(1, b)
+}
+
+func BenchmarkSimpleBufSeq_BufSize1024_MultiClient(b *testing.B) {
+	benchmarkSimpleBufSeq_MultiClient(1024, b)
 }
 
 // -----------------------------------------------------------------------------

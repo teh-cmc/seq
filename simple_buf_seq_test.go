@@ -13,10 +13,10 @@ import (
 // NOTE: run these tests with `go test -race -cpu 1,8,32`
 
 func TestSimpleBufSeq_New_BufSize(t *testing.T) {
-	ensure.DeepEqual(t, cap(NewSimpleBufSeq(-42)), 0)
-	ensure.DeepEqual(t, cap(NewSimpleBufSeq(0)), 0)
-	ensure.DeepEqual(t, cap(NewSimpleBufSeq(1)), 1)
-	ensure.DeepEqual(t, cap(NewSimpleBufSeq(1e6)), int(1e6))
+	ensure.DeepEqual(t, cap(NewSimpleBufSeq(-42).ids), 0)
+	ensure.DeepEqual(t, cap(NewSimpleBufSeq(0).ids), 0)
+	ensure.DeepEqual(t, cap(NewSimpleBufSeq(1).ids), 1)
+	ensure.DeepEqual(t, cap(NewSimpleBufSeq(1e6).ids), int(1e6))
 }
 
 func TestSimpleBufSeq_FirstID(t *testing.T) {
@@ -54,16 +54,19 @@ func TestSimpleBufSeq_MultiClient(t *testing.T) {
 			break
 		}
 		ensure.DeepEqual(t, id1, lastID+1)
+		lastID++
 		id2 := s2.Next()
 		if id2 == 0 {
 			break
 		}
 		ensure.DeepEqual(t, id2, id1+1)
+		lastID++
 		id3 := s3.Next()
 		if id3 == 0 {
 			break
 		}
 		ensure.DeepEqual(t, id3, id2+1)
+		lastID++
 	}
 }
 

@@ -1,9 +1,19 @@
 package seq
 
+import "sort"
+
 // -----------------------------------------------------------------------------
 
 // ID is a 64bits wide unsigned identifier.
 type ID uint64
+
+// IDSlice implements `sort.Interface` for slices of `ID`s.`
+type IDSlice []ID
+
+func (ids IDSlice) Len() int           { return len(ids) }
+func (ids IDSlice) Less(i, j int) bool { return ids[i] < ids[j] }
+func (ids IDSlice) Swap(i, j int)      { ids[i], ids[j] = ids[j], ids[i] }
+func (ids IDSlice) Sort() IDSlice      { sort.Sort(ids); return ids }
 
 // IDStream is a read-only channel of `ID`s.
 //

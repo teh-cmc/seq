@@ -42,11 +42,17 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 		defer wg.Done()
 		for {
 			select {
-			case ids <- id: // blocks once `seq` is full
-				id++
 			case <-stop: // stream has been closed, kill routine
 				return
+			default:
+				select {
+				case ids <- id: // blocks once `seq` is full
+					id++
+				case <-stop: // stream has been closed, kill routine
+					return
+				}
 			}
+
 		}
 	}()
 

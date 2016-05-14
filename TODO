@@ -1,19 +1,20 @@
 README
-    the read-repair strategy -> fsync-ing
-    the read-repair strategy -> retries = gaps (single commit)
-    the read-repair strategy + client-side range caching
-    the flake model
-    document repo's organization
-    polish
+ 9  the read-repair strategy -> fsync-ing
+ 9  the read-repair strategy -> retries = gaps (single commit)
+ 9  the read-repair strategy + client-side range caching
+ 9  the flake model
+ 9  document repo's organization
+ 9  polish
 
 RR_SEQ
-    implement fsync support
-    implement timeouts & cancellations
-    implement retries
-    implement reconnections
-    atomic query counter
-    mayhem mode testing
+ 2  implement fsync support
+ 9  implement timeouts & cancellations
+ 6  implement server-side retries
+ 9  implement reconnections
+ 5  implement AddPeer
+ 3  atomic query counter
+ 9  mayhem mode testing
 
 TRAVIS
-    yaml conf
-    coveralls
+ 6  yaml conf
+ 6  coveralls

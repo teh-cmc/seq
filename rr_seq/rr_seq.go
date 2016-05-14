@@ -51,12 +51,15 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 		defer wg.Done()
 		for {
 
-			// if the current range has already been half (or more) consumed:
-			//  I: replace current range with the (already stored) next range
-			// II: fetch the next available range from the cluster
+			// if the current range has already been half (or more) consumed,
+			// fetch and store the next available range from the cluster
 			if curRange[0] >= curRange[1]/2 {
-				curRange = nextRange
 				nextRange[0], nextRange[1] = rrseq.getNextRange(name, bufSize)
+				// if the current range has been entirely consumed,
+				// replace the current range by the already stored next range
+				if curRange[0] >= curRange[1] {
+					curRange = nextRange
+				}
 			}
 
 			select {

@@ -9,3 +9,8 @@ RR_SEQ
     implement RRAPIPool
     implement RRServer
     implement RRSeq
+    implement fsync support
+    implement cancellations
+
+TRAVIS
+    yaml conf

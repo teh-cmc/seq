@@ -6,12 +6,10 @@ README
     polish
 
 RR_SEQ
-    implement RRAPIPool
-    implement RRServer
-    implement RRSeq
     implement fsync support
-    implement cancellations
+    implement timeouts & cancellations
     atomic query counter
+    mayhem mode testing
 
 TRAVIS
     yaml conf

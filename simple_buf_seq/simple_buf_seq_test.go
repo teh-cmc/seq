@@ -191,7 +191,7 @@ func ExampleSimpleBufSeq() {
 	for id := range s.GetStream() {
 		ids = append(ids, id)
 		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
-			s.Close()
+			_ = s.Close()
 		}
 	}
 	fmt.Println(ids)

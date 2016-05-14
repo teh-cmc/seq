@@ -69,11 +69,13 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 			case <-stop: // stream has been closed, kill routine
 				return
 			default:
-				select {
-				case ids <- curRange[0]: // blocks once `seq` is full
-					curRange[0]++
-				case <-stop: // stream has been closed, kill routine
-					return
+				if curRange[0] < curRange[1] {
+					select {
+					case ids <- curRange[0]: // blocks once `seq` is full
+						curRange[0]++
+					case <-stop: // stream has been closed, kill routine
+						return
+					}
 				}
 			}
 

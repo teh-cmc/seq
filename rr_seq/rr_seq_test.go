@@ -205,69 +205,68 @@ func TestRRSeq_BufSize1024_ConcurrentClients256_Local(t *testing.T) {
 // This is certainly the most important of the standard (i.e. non-mayhem) tests,
 // as it checks that a cluster of `RRServer`s, being bombarded of NextID queries
 // on its every nodes, still consistently deliver coherent, sequential `ID`s.
-func testRRSeq_ConcurrentClients256_Distributed(bufSize int, t *testing.T) {
+func testRRSeq_ConcurrentClients32_Distributed(bufSize int, t *testing.T) {
 	name := fmt.Sprintf(
-		"testRRSeq_ConcurrentClients256_Distributed(bufsz:%d)(gomaxprocs:%d)",
+		"testRRSeq_ConcurrentClients32_Distributed(bufsz:%d)(gomaxprocs:%d)",
 		bufSize, runtime.GOMAXPROCS(0),
 	)
-	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	go func() {
-		<-time.After(time.Millisecond * 1000)
-		_ = s.Close()
-	}()
-
-	ids := make(seq.IDSlice, 0, 256*bufSize*10)
+	ids := make(seq.IDSlice, 0, 32*bufSize*3)
 	idsLock := &sync.Mutex{}
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 256; i++ {
+	for i := 0; i < 32; i++ {
 		wg.Add(1)
-		go func(ii int) {
-			allIDs := make(seq.IDSlice, 0, bufSize*10)
+		go func() {
+			s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			allIDs := make(seq.IDSlice, bufSize*3)
 			lastID := seq.ID(0)
+			j := 0
 			for id := range s.GetStream() {
+				if j >= len(allIDs) {
+					break
+				}
 				ensure.True(t, id > lastID)
 				lastID = id
-				allIDs = append(allIDs, id)
+				allIDs[j] = id
+				j++
 			}
-			wg.Done()
+			_ = s.Close()
 
 			idsLock.Lock()
 			ids = append(ids, allIDs...)
 			idsLock.Unlock()
-		}(i)
+
+			wg.Done()
+		}()
 	}
 	wg.Wait()
 
 	// this checks that, within a healthy cluster, the complete set of `ID`s
-	// returned is monotonically increasing
+	// returned is monotonically increasing in its entirety
 	ids = ids.Sort()
 	for i := 0; i < len(ids)-1; i++ {
 		ensure.True(t, ids[i]+1 == ids[i+1])
 	}
 }
 
-func TestRRSeq_BufSize0_ConcurrentClients256_Distributed(t *testing.T) {
-	testRRSeq_ConcurrentClients256_Distributed(0, t)
+func TestRRSeq_BufSize0_ConcurrentClients32_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients32_Distributed(0, t)
 }
 
-func TestRRSeq_BufSize1_ConcurrentClients256_Distributed(t *testing.T) {
-	testRRSeq_ConcurrentClients256_Distributed(1, t)
+func TestRRSeq_BufSize1_ConcurrentClients32_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients32_Distributed(1, t)
 }
 
-func TestRRSeq_BufSize2_ConcurrentClients256_Distributed(t *testing.T) {
-	testRRSeq_ConcurrentClients256_Distributed(2, t)
+func TestRRSeq_BufSize2_ConcurrentClients32_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients32_Distributed(2, t)
 }
 
-func TestRRSeq_BufSize1024_ConcurrentClients256_Distributed(t *testing.T) {
-	testRRSeq_ConcurrentClients256_Distributed(1024, t)
+func TestRRSeq_BufSize1024_ConcurrentClients32_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients32_Distributed(1024, t)
 }
 
 // -----------------------------------------------------------------------------

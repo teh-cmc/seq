@@ -5,7 +5,7 @@ import "sync"
 // -----------------------------------------------------------------------------
 
 const (
-	testingRRSeqName = "idseq"
+	testingRRSeqDefaultName = "idseq"
 
 	testingRRServer1Addr = ":16001"
 	testingRRServer2Addr = ":16002"

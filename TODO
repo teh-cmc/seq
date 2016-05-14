@@ -1,5 +1,6 @@
 README
     the read-repair strategy -> fsync-ing
+    the read-repair strategy -> retries = gaps (single commit)
     the read-repair strategy + client-side range caching
     the flake model
     document repo's organization
@@ -8,6 +9,7 @@ README
 RR_SEQ
     implement fsync support
     implement timeouts & cancellations
+    implement retries
     atomic query counter
     mayhem mode testing
 

@@ -88,3 +88,55 @@ func TestRRSeq_BufSize1_SingleClient(t *testing.T) {
 func TestRRSeq_BufSize1024_SingleClient(t *testing.T) {
 	testRRSeq_SingleClient(1024, t)
 }
+
+// -----------------------------------------------------------------------------
+
+func testRRSeq_MultiClient(bufSize int, t *testing.T) {
+	name := fmt.Sprintf(
+		"testRRSeq_MultiClient(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
+	)
+	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lastID := seq.ID(0)
+
+	go func() {
+		<-time.After(time.Millisecond * 500)
+		_ = s.Close()
+	}()
+
+	s1, s2, s3 := s.GetStream(), s.GetStream(), s.GetStream()
+	for {
+		id1 := s1.Next()
+		if id1 == 0 {
+			break
+		}
+		ensure.DeepEqual(t, id1, lastID+1)
+		lastID++
+		id2 := s2.Next()
+		if id2 == 0 {
+			break
+		}
+		ensure.DeepEqual(t, id2, id1+1)
+		lastID++
+		id3 := s3.Next()
+		if id3 == 0 {
+			break
+		}
+		ensure.DeepEqual(t, id3, id2+1)
+		lastID++
+	}
+}
+
+func TestRRSeq_BufSize0_MultiClient(t *testing.T) {
+	testRRSeq_MultiClient(0, t)
+}
+
+func TestRRSeq_BufSize1_MultiClient(t *testing.T) {
+	testRRSeq_MultiClient(1, t)
+}
+
+func TestRRSeq_BufSize1024_MultiClient(t *testing.T) {
+	testRRSeq_MultiClient(1024, t)
+}

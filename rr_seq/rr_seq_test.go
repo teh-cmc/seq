@@ -214,3 +214,33 @@ func BenchmarkRRSeq_BufSize1_SingleClient(b *testing.B) {
 func BenchmarkRRSeq_BufSize1024_SingleClient(b *testing.B) {
 	benchmarkRRSeq_SingleClient(1024, b)
 }
+
+// -----------------------------------------------------------------------------
+
+func benchmarkRRSeq_MultiClient_Local(bufSize int, b *testing.B) {
+	name := fmt.Sprintf(
+		"benchmarkRRSeq_MultiClient_Local(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
+	)
+	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		ids := s.GetStream()
+		for pb.Next() {
+			_ = ids.Next()
+		}
+	})
+}
+
+func BenchmarkRRSeq_BufSize0_MultiClient_Local(b *testing.B) {
+	benchmarkRRSeq_MultiClient_Local(0, b)
+}
+
+func BenchmarkRRSeq_BufSize1_MultiClient_Local(b *testing.B) {
+	benchmarkRRSeq_MultiClient_Local(1, b)
+}
+
+func BenchmarkRRSeq_BufSize1024_MultiClient_Local(b *testing.B) {
+	benchmarkRRSeq_MultiClient_Local(1024, b)
+}

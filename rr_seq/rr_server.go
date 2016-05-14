@@ -117,66 +117,81 @@ func (s *RRServer) Close() error {
 // The returned range of `ID`s is of the form [from:to).
 //
 // `rangeSize` will default to 1 in case it is < 1.
+//
+// TODO: retries (note: can induce gaps)
 func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	if rangeSize < 1 {
 		rangeSize = 1
 	}
 
 	nbPeers, nbQuorum := 1+s.cp.Size(), (1+s.cp.Size())/2+1
-	wg := &sync.WaitGroup{}
 
 	// STEP I:
 	// Fetch the current `ID` from `quorum` nodes (including ourself)
 	// Find the highest `ID` within this set
 
+	getWG := &sync.WaitGroup{}
 	ids := make(chan seq.ID, nbPeers)
 	ids <- s.getID(name)
 	for i := 1; i < nbPeers; i++ {
-		wg.Add(1)
-		go s.getPeerID(s.cp.ClientRoundRobin(), name, ids, wg)
+		getWG.Add(1)
+		go s.getPeerID(s.cp.ClientRoundRobin(), name, ids, getWG)
 	}
 
-	highestID := seq.ID(0)
-	fetched := 1 // already fetched local current `ID`
+	highestID := seq.ID(1)
+	failedGets, succeededGets := 0, 1 // already fetched local current `ID`
 	for id := range ids {
 		if id > highestID {
 			highestID = id
 		}
-		fetched++
-		if fetched >= nbQuorum {
+		if id > seq.ID(0) {
+			succeededGets++
+		} else {
+			failedGets++
+		}
+		if succeededGets >= nbQuorum {
 			break
+		}
+		if failedGets+succeededGets >= nbPeers {
+			return 0, 0
 		}
 	}
 
 	// TODO: cancel the (N-(N/2+1)) unnecessary requests
-	wg.Wait()
+	getWG.Wait()
 	close(ids)
 
 	// STEP II:
 	// Sets the current `ID` to `highestID+rangeSize` on `quorum` nodes (including ourself)
 
+	setWG := &sync.WaitGroup{}
 	newID := highestID + seq.ID(rangeSize)
 	successes := make(chan bool, nbPeers)
 	successes <- s.setID(name, newID)
 	for i := 1; i < nbPeers; i++ {
-		wg.Add(1)
-		go s.setPeerID(s.cp.ClientRoundRobin(), name, newID, successes, wg)
+		setWG.Add(1)
+		go s.setPeerID(s.cp.ClientRoundRobin(), name, newID, successes, setWG)
 	}
 
 	var fromID, toID seq.ID
-	nbSuccesses := 0
-	for s := range successes {
-		if s {
-			nbSuccesses++
+	failedSets, succeededSets := 0, 0
+	for success := range successes {
+		if success {
+			succeededSets++
+		} else {
+			failedSets++
 		}
-		if nbSuccesses >= nbQuorum {
+		if succeededSets >= nbQuorum {
 			fromID, toID = highestID, newID
+			break
+		}
+		if failedSets+succeededSets >= nbPeers {
 			break
 		}
 	}
 
 	// TODO: cancel the (N-(N/2+1)) unnecessary requests
-	wg.Wait()
+	setWG.Wait()
 	close(successes)
 
 	return fromID, toID
@@ -207,6 +222,8 @@ func (s *RRServer) getID(name string) seq.ID {
 
 // getPeerID pushes in `ret` the current `ID` associated with the specified
 // name for the given peer; or `1` if no such `ID` exists.
+//
+// It pushes `0` in case of error.
 func (s *RRServer) getPeerID(
 	peer RRAPIClient,
 	name string,
@@ -218,6 +235,7 @@ func (s *RRServer) getPeerID(
 	//                             ^^^^^^^^^^^^^^
 	// TODO: handle cancellations & timeouts --^
 	if err != nil {
+		ret <- seq.ID(0)
 		return err
 	}
 	ret <- seq.ID(idReply.CurId)

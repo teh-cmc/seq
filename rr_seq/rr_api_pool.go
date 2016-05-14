@@ -15,7 +15,7 @@ type rrAPIPool struct {
 	clients []RRAPIClient
 
 	current     int
-	currentLock *sync.Mutex
+	currentLock *sync.RWMutex
 }
 
 // newRRAPIPool returns a new `rrAPIPool` with one client for each specified
@@ -23,28 +23,48 @@ type rrAPIPool struct {
 //
 // newRRAPIPool will fail if any of the client fails to connect.
 func newRRAPIPool(addrs ...string) (*rrAPIPool, error) {
-	clients := make([]RRAPIClient, len(addrs))
-	for i, addr := range addrs {
-		conn, err := grpc.Dial(addr,
-			grpc.WithInsecure(), // no transport security
-			grpc.WithBlock(),    // blocks until connection is first established
-			grpc.WithUserAgent("RRSeq"),
-		)
-		if err != nil {
-			return nil, err
-		}
-		clients[i] = NewRRAPIClient(conn)
+	p := &rrAPIPool{
+		clients:     make([]RRAPIClient, 0, len(addrs)),
+		currentLock: &sync.RWMutex{},
 	}
 
-	return &rrAPIPool{
-		clients:     clients,
-		current:     rand.Intn(len(clients)), // start round-robin at random position
-		currentLock: &sync.Mutex{},
-	}, nil
+	for _, addr := range addrs {
+		if err := p.Add(addr); err != nil {
+			return nil, err
+		}
+	}
+
+	if nbClients := len(p.clients); nbClients > 0 {
+		p.current = rand.Intn(nbClients) // start round-robin at random position
+	}
+	return p, nil
 }
 
+func (p *rrAPIPool) Add(addr string) error {
+	conn, err := grpc.Dial(addr,
+		grpc.WithInsecure(), // no transport security
+		grpc.WithBlock(),    // blocks until connection is first established
+		grpc.WithUserAgent("RRSeq"),
+	)
+	if err != nil {
+		return err
+	}
+
+	p.currentLock.Lock()
+	p.clients = append(p.clients, NewRRAPIClient(conn))
+	p.currentLock.Unlock()
+
+	return nil
+}
+
+// -----------------------------------------------------------------------------
+
 // Size returns the size of the pool.
-func (p *rrAPIPool) Size() int { return len(p.clients) }
+func (p *rrAPIPool) Size() int {
+	p.currentLock.RLock()
+	defer p.currentLock.RUnlock()
+	return len(p.clients)
+}
 
 // Client returns the next `RRAPIClient` in the pool by applying a simple
 // round-robin algorithm.

@@ -211,7 +211,7 @@ func testRRSeq_ConcurrentClients32_Distributed(bufSize int, t *testing.T) {
 		bufSize, runtime.GOMAXPROCS(0),
 	)
 
-	ids := make(seq.IDSlice, 0, 32*bufSize*3)
+	ids := make(seq.IDSlice, 0, 32*(bufSize+1)*10)
 	idsLock := &sync.Mutex{}
 
 	wg := &sync.WaitGroup{}
@@ -222,7 +222,7 @@ func testRRSeq_ConcurrentClients32_Distributed(bufSize int, t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			allIDs := make(seq.IDSlice, bufSize*3)
+			allIDs := make(seq.IDSlice, 0, (bufSize+1)*10)
 			lastID := seq.ID(0)
 			j := 0
 			for id := range s.GetStream() {
@@ -231,7 +231,7 @@ func testRRSeq_ConcurrentClients32_Distributed(bufSize int, t *testing.T) {
 				}
 				ensure.True(t, id > lastID)
 				lastID = id
-				allIDs[j] = id
+				allIDs = append(allIDs, id)
 				j++
 			}
 			_ = s.Close()

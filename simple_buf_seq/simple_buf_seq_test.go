@@ -103,18 +103,18 @@ func TestSimpleBufSeq_BufSize1024_MultiClient(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func testSimpleBufSeq_ConcurrentClients256(bufSize int, t *testing.T) {
-	seq := NewSimpleBufSeq(bufSize)
+	s := NewSimpleBufSeq(bufSize)
 
 	go func() {
 		<-time.After(time.Millisecond * 250)
-		_ = seq.Close()
+		_ = s.Close()
 	}()
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < 256; i++ {
 		wg.Add(1)
 		go func() {
-			for id := range seq.GetStream() {
+			for id := range s.GetStream() {
 				_ = id
 			}
 			wg.Done()

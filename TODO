@@ -11,6 +11,7 @@ RR_SEQ
     implement RRSeq
     implement fsync support
     implement cancellations
+    atomic query counter
 
 TRAVIS
     yaml conf

@@ -88,9 +88,7 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 // getNextRange fetches the next available range of `ID`s from the cluster
 // of `RRServer`s.
 func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
-	idReply, err := ss.cp.Client().GRPCNextID(
-		//          ^^^^^^^^^^^^^^
-		//                 ^--- transparent round-robin
+	idReply, err := ss.cp.ClientRoundRobin().GRPCNextID(
 		context.TODO(), // TODO: handle timeouts
 		&NextIDRequest{Name: name, RangeSize: int64(rangeSize)},
 	)

@@ -66,9 +66,9 @@ func (p *rrAPIPool) Size() int {
 	return len(p.clients)
 }
 
-// Client returns the next `RRAPIClient` in the pool by applying a simple
-// round-robin algorithm.
-func (p *rrAPIPool) Client() RRAPIClient {
+// ClientRoundRobin returns the next `RRAPIClient` in the pool by applying a
+// simple round-robin algorithm.
+func (p *rrAPIPool) ClientRoundRobin() RRAPIClient {
 	p.currentLock.Lock()
 	p.current++
 	if p.current >= len(p.clients) {

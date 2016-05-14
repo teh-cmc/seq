@@ -133,9 +133,7 @@ func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	ids <- s.getID(name)
 	for i := 1; i < nbPeers; i++ {
 		wg.Add(1)
-		go s.getPeerID(s.cp.Client(), name, ids, wg)
-		//             ^^^^^^^^^^^^^
-		//                   ^--- transparent round-robin
+		go s.getPeerID(s.cp.ClientRoundRobin(), name, ids, wg)
 	}
 
 	highestID := seq.ID(0)
@@ -162,9 +160,7 @@ func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	successes <- s.setID(name, newID)
 	for i := 1; i < nbPeers; i++ {
 		wg.Add(1)
-		go s.setPeerID(s.cp.Client(), name, newID, successes, wg)
-		//             ^^^^^^^^^^^^^
-		//                   ^--- transparent round-robin
+		go s.setPeerID(s.cp.ClientRoundRobin(), name, newID, successes, wg)
 	}
 
 	var fromID, toID seq.ID

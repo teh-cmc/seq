@@ -12,7 +12,7 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// NOTE: run these tests with `go test -race -cpu 1,8,32`
+// NOTE: run these tests with `go test -race -cpu 1,4,8`
 
 func TestSimpleBufSeq_New_BufSize(t *testing.T) {
 	ensure.DeepEqual(t, cap(NewSimpleBufSeq(-42).ids), 0)

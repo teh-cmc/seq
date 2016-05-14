@@ -13,7 +13,7 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// NOTE: run these tests with `go test -race -cpu 1,8,32`
+// NOTE: run these tests with `go test -race -cpu 1,4,8`
 
 func TestRRSeq_New_BufSize(t *testing.T) {
 	var rrseq *RRSeq
@@ -181,4 +181,36 @@ func TestRRSeq_BufSize1_ConcurrentClients256_Local(t *testing.T) {
 
 func TestRRSeq_BufSize1024_ConcurrentClients256_Local(t *testing.T) {
 	testRRSeq_ConcurrentClients256_Local(1024, t)
+}
+
+// -----------------------------------------------------------------------------
+
+// NOTE: run these benchmarks with `go test -run=none -bench=. -cpu 1,8,32`
+
+func benchmarkRRSeq_SingleClient(bufSize int, b *testing.B) {
+	name := fmt.Sprintf(
+		"benchmarkRRSeq_SingleClient(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
+	)
+	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
+	if err != nil {
+		b.Fatal(err)
+	}
+	ids := s.GetStream()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = ids.Next()
+	}
+}
+
+func BenchmarkRRSeq_BufSize0_SingleClient(b *testing.B) {
+	benchmarkRRSeq_SingleClient(0, b)
+}
+
+func BenchmarkRRSeq_BufSize1_SingleClient(b *testing.B) {
+	benchmarkRRSeq_SingleClient(1, b)
+}
+
+func BenchmarkRRSeq_BufSize1024_SingleClient(b *testing.B) {
+	benchmarkRRSeq_SingleClient(1024, b)
 }

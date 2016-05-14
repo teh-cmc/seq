@@ -54,14 +54,14 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 }
 
 // GetStream returns a pre-buffered, range-able stream of monotonically
-// increasing IDs, starting at 1.
+// increasing IDs, starting at `1`.
 func (ss SimpleBufSeq) GetStream() seq.IDStream { return ss.ids }
 
 // Close closes the associated `IDStream`.
 // It always returns `nil`.
 func (ss *SimpleBufSeq) Close() error {
 	close(ss.stop) // kill background routine
-	ss.wg.Wait()
-	close(ss.ids) // close `ID` stream
-	return nil
+	ss.wg.Wait()   // wait for it to be fully stopped
+	close(ss.ids)  // close `ID` stream
+	return nil     // always return `nil`
 }

@@ -244,3 +244,23 @@ func BenchmarkRRSeq_BufSize1_MultiClient_Local(b *testing.B) {
 func BenchmarkRRSeq_BufSize1024_MultiClient_Local(b *testing.B) {
 	benchmarkRRSeq_MultiClient_Local(1024, b)
 }
+
+// -----------------------------------------------------------------------------
+
+func ExampleRRSeq() {
+	s, err := NewRRSeq("myseq", 2, testingRRServerAddrs...)
+	if err != nil {
+		panic(err)
+	}
+
+	ids := make([]seq.ID, 0)
+	for id := range s.GetStream() {
+		ids = append(ids, id)
+		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
+			_ = s.Close()
+		}
+	}
+	fmt.Println(ids)
+
+	// Output: [1 2 3 4 5 6 7 8 9 10 11 12]
+}

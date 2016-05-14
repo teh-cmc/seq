@@ -3,6 +3,7 @@ package rrs
 import (
 	"fmt"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -91,9 +92,9 @@ func TestRRSeq_BufSize1024_SingleClient(t *testing.T) {
 
 // -----------------------------------------------------------------------------
 
-func testRRSeq_MultiClient(bufSize int, t *testing.T) {
+func testRRSeq_MultiClient_Local(bufSize int, t *testing.T) {
 	name := fmt.Sprintf(
-		"testRRSeq_MultiClient(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
+		"testRRSeq_MultiClient_Local(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
 	)
 	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
 	if err != nil {
@@ -129,14 +130,55 @@ func testRRSeq_MultiClient(bufSize int, t *testing.T) {
 	}
 }
 
-func TestRRSeq_BufSize0_MultiClient(t *testing.T) {
-	testRRSeq_MultiClient(0, t)
+func TestRRSeq_BufSize0_MultiClient_Local(t *testing.T) {
+	testRRSeq_MultiClient_Local(0, t)
 }
 
-func TestRRSeq_BufSize1_MultiClient(t *testing.T) {
-	testRRSeq_MultiClient(1, t)
+func TestRRSeq_BufSize1_MultiClient_Local(t *testing.T) {
+	testRRSeq_MultiClient_Local(1, t)
 }
 
-func TestRRSeq_BufSize1024_MultiClient(t *testing.T) {
-	testRRSeq_MultiClient(1024, t)
+func TestRRSeq_BufSize1024_MultiClient_Local(t *testing.T) {
+	testRRSeq_MultiClient_Local(1024, t)
+}
+
+// -----------------------------------------------------------------------------
+
+func testRRSeq_ConcurrentClients256_Local(bufSize int, t *testing.T) {
+	name := fmt.Sprintf(
+		"testRRSeq_ConcurrentClients256_Local(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
+	)
+	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		<-time.After(time.Millisecond * 500)
+		_ = s.Close()
+	}()
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 256; i++ {
+		wg.Add(1)
+		go func() {
+			for id := range s.GetStream() {
+				_ = id
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func TestRRSeq_BufSize0_ConcurrentClients256_Local(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Local(0, t)
+}
+
+func TestRRSeq_BufSize1_ConcurrentClients256_Local(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Local(1, t)
+}
+
+func TestRRSeq_BufSize1024_ConcurrentClients256_Local(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Local(1024, t)
 }

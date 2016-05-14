@@ -10,6 +10,7 @@ RR_SEQ
     implement fsync support
     implement timeouts & cancellations
     implement retries
+    implement reconnections
     atomic query counter
     mayhem mode testing
 

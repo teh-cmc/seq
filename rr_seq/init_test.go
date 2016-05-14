@@ -1,112 +1,43 @@
 package rrs
 
-import "sync"
+import (
+	"os"
+	"strconv"
+)
 
 // -----------------------------------------------------------------------------
 
-const (
-	testingRRSeqDefaultName = "idseq"
-
-	testingRRServer1Addr = ":16001"
-	testingRRServer2Addr = ":16002"
-	testingRRServer3Addr = ":16003"
-	testingRRServer4Addr = ":16004"
-	testingRRServer5Addr = ":16005"
-)
-
-var (
-	testingRRServerAddrs = []string{
-		testingRRServer1Addr,
-		testingRRServer2Addr,
-		testingRRServer3Addr,
-		testingRRServer4Addr,
-		testingRRServer5Addr,
-	}
-
-	testingRRServer1 *RRServer
-	testingRRServer2 *RRServer
-	testingRRServer3 *RRServer
-	testingRRServer4 *RRServer
-	testingRRServer5 *RRServer
-)
+var testingRRServers []*RRServer
+var testingRRServerAddrs []string
 
 func init() {
-	wg := &sync.WaitGroup{}
+	// use SEQ_SERVERS envar to dynamically specify number of test servers
+	var nbServers int64 = 5
+	if n, err := strconv.ParseInt(os.Getenv("SEQ_SERVERS"), 10, 64); err == nil {
+		nbServers = n
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		testingRRServer1, err = NewRRServer(testingRRServer1Addr,
-			testingRRServer2Addr,
-			testingRRServer3Addr,
-			testingRRServer4Addr,
-			testingRRServer5Addr,
-		)
+	testingRRServers = make([]*RRServer, nbServers)
+
+	var err error
+	for i := int64(0); i < nbServers; i++ {
+		testingRRServers[i], err = NewRRServer(":0")
 		if err != nil {
 			panic(err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		testingRRServer2, err = NewRRServer(testingRRServer2Addr,
-			testingRRServer1Addr,
-			testingRRServer3Addr,
-			testingRRServer4Addr,
-			testingRRServer5Addr,
-		)
-		if err != nil {
-			panic(err)
+	}
+	for i, s := range testingRRServers {
+		for j := int64(0); j < nbServers; j++ {
+			if j != int64(i) {
+				if err := s.cp.Add(testingRRServers[j].Addr().String()); err != nil {
+					panic(err)
+				}
+			}
 		}
-	}()
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		testingRRServer3, err = NewRRServer(testingRRServer3Addr,
-			testingRRServer1Addr,
-			testingRRServer2Addr,
-			testingRRServer4Addr,
-			testingRRServer5Addr,
-		)
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		testingRRServer4, err = NewRRServer(testingRRServer4Addr,
-			testingRRServer1Addr,
-			testingRRServer2Addr,
-			testingRRServer3Addr,
-			testingRRServer5Addr,
-		)
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		testingRRServer5, err = NewRRServer(testingRRServer5Addr,
-			testingRRServer1Addr,
-			testingRRServer2Addr,
-			testingRRServer3Addr,
-			testingRRServer4Addr,
-		)
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	wg.Wait()
+	testingRRServerAddrs = make([]string, nbServers)
+	for i := range testingRRServerAddrs {
+		testingRRServerAddrs[i] = testingRRServers[i].Addr().String()
+	}
 }

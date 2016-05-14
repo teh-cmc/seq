@@ -39,6 +39,7 @@ type lockedIDMap struct {
 // `README.md` file at the root of this repository.
 type RRServer struct {
 	*grpc.Server
+	addr net.Addr
 
 	cp  *rrAPIPool
 	ids *lockedIDMap
@@ -67,6 +68,7 @@ func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
 	}
 	serv.Server = grpc.NewServer()
 	RegisterRRAPIServer(serv.Server, serv)
+	serv.addr = ln.Addr()
 	go serv.Serve(ln)
 
 	if len(peerAddrs) < 2 {
@@ -92,6 +94,9 @@ func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
 
 	return serv, nil
 }
+
+// Addr returns the current listening address.
+func (s RRServer) Addr() net.Addr { return s.addr }
 
 // Close stops the `RRServer` and its associated gRPC connections; and closes
 // all the clients in the `rrAPIPool`.

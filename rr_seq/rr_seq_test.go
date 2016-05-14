@@ -2,6 +2,7 @@ package rrs
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -17,25 +18,27 @@ func TestRRSeq_New_BufSize(t *testing.T) {
 	var rrseq *RRSeq
 	var err error
 
-	rrseq, err = NewRRSeq(testingRRSeqDefaultName, -42, testingRRServerAddrs...)
+	name := fmt.Sprintf("TestRRSeq_New_BufSize(gomaxprocs:%d)", runtime.GOMAXPROCS(0))
+
+	rrseq, err = NewRRSeq(name, -42, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ensure.DeepEqual(t, cap(rrseq.ids), 0)
 
-	rrseq, err = NewRRSeq(testingRRSeqDefaultName, 0, testingRRServerAddrs...)
+	rrseq, err = NewRRSeq(name, 0, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ensure.DeepEqual(t, cap(rrseq.ids), 0)
 
-	rrseq, err = NewRRSeq(testingRRSeqDefaultName, 1, testingRRServerAddrs...)
+	rrseq, err = NewRRSeq(name, 1, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ensure.DeepEqual(t, cap(rrseq.ids), 1)
 
-	rrseq, err = NewRRSeq(testingRRSeqDefaultName, 1e6, testingRRServerAddrs...)
+	rrseq, err = NewRRSeq(name, 1e6, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +46,8 @@ func TestRRSeq_New_BufSize(t *testing.T) {
 }
 
 func TestRRSeq_FirstID(t *testing.T) {
-	rrseq, err := NewRRSeq("TestRRSeq_FirstID", 1e2, testingRRServerAddrs...)
+	name := fmt.Sprintf("TestRRSeq_FirstID(gomaxprocs:%d)", runtime.GOMAXPROCS(0))
+	rrseq, err := NewRRSeq(name, 1e2, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +57,9 @@ func TestRRSeq_FirstID(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func testRRSeq_SingleClient(bufSize int, t *testing.T) {
-	name := fmt.Sprintf("testRRSeq_SingleClient(%d)", bufSize)
+	name := fmt.Sprintf(
+		"testRRSeq_SingleClient(bufsz:%d)(gomaxprocs:%d)", bufSize, runtime.GOMAXPROCS(0),
+	)
 	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +67,7 @@ func testRRSeq_SingleClient(bufSize int, t *testing.T) {
 	lastID := seq.ID(0)
 
 	go func() {
-		<-time.After(time.Millisecond * 250)
+		<-time.After(time.Millisecond * 500)
 		_ = s.Close()
 	}()
 

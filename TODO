@@ -13,3 +13,4 @@ RR_SEQ
 
 TRAVIS
     yaml conf
+    coveralls

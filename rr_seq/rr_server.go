@@ -2,7 +2,10 @@ package rrs
 
 import (
 	"log"
+	"net"
 	"sync"
+
+	"google.golang.org/grpc"
 
 	"github.com/teh-cmc/seq"
 
@@ -35,6 +38,8 @@ type lockedIDMap struct {
 // You can find more information about the ideas behind such a system in the
 // `README.md` file at the root of this repository.
 type RRServer struct {
+	*grpc.Server
+
 	cp  *rrAPIPool
 	ids *lockedIDMap
 }
@@ -53,7 +58,17 @@ type RRServer struct {
 // "half & (almost) half" netsplit situation.
 //
 // TODO: fsync support.
-func NewRRServer(peerAddrs ...string) (*RRServer, error) {
+func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
+	serv := &RRServer{}
+
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	serv.Server = grpc.NewServer()
+	RegisterRRAPIServer(serv.Server, serv)
+	go serv.Serve(ln)
+
 	if len(peerAddrs) < 2 {
 		log.Printf("warning: only %d peers specified\n", len(peerAddrs))
 	}
@@ -65,13 +80,24 @@ func NewRRServer(peerAddrs ...string) (*RRServer, error) {
 	if err != nil {
 		return nil, err
 	}
+	serv.cp = cp
 
 	ids := &lockedIDMap{
 		RWMutex: &sync.RWMutex{},
 		ids:     make(map[string]*lockedID),
 	}
+	serv.ids = ids
 
-	return &RRServer{cp: cp, ids: ids}, nil
+	return serv, nil
+}
+
+// Close stops the `RRServer` and its associated gRPC connections; and closes
+// all the clients in the `rrAPIPool`.
+//
+// It returns the first error met.
+func (s *RRServer) Close() error {
+	s.Server.Stop()
+	return s.cp.Close()
 }
 
 // -----------------------------------------------------------------------------
@@ -241,6 +267,8 @@ func (s *RRServer) setPeerID(
 
 	idReply, err := peer.GRPCSetID(
 		context.TODO(), &SetIDRequest{Name: name, NewId: uint64(id)},
+	//  ^^^^^^^^^^^^^^
+	//        ^--- TODO: handle cancellations & timeouts
 	)
 	if err != nil {
 		ret <- false

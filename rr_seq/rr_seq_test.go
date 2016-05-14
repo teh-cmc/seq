@@ -16,43 +16,48 @@ import (
 // NOTE: run these tests with `go test -race -cpu 1,4,8`
 
 func TestRRSeq_New_BufSize(t *testing.T) {
-	var rrseq *RRSeq
+	var s *RRSeq
 	var err error
 
 	name := fmt.Sprintf("TestRRSeq_New_BufSize(gomaxprocs:%d)", runtime.GOMAXPROCS(0))
 
-	rrseq, err = NewRRSeq(name, -42, testingRRServerAddrs...)
+	s, err = NewRRSeq(name, -42, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ensure.DeepEqual(t, cap(rrseq.ids), 0)
+	ensure.DeepEqual(t, cap(s.ids), 0)
+	_ = s.Close()
 
-	rrseq, err = NewRRSeq(name, 0, testingRRServerAddrs...)
+	s, err = NewRRSeq(name, 0, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ensure.DeepEqual(t, cap(rrseq.ids), 0)
+	ensure.DeepEqual(t, cap(s.ids), 0)
+	_ = s.Close()
 
-	rrseq, err = NewRRSeq(name, 1, testingRRServerAddrs...)
+	s, err = NewRRSeq(name, 1, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ensure.DeepEqual(t, cap(rrseq.ids), 1)
+	ensure.DeepEqual(t, cap(s.ids), 1)
+	_ = s.Close()
 
-	rrseq, err = NewRRSeq(name, 1e6, testingRRServerAddrs...)
+	s, err = NewRRSeq(name, 1e6, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ensure.DeepEqual(t, cap(rrseq.ids), int(1e6))
+	ensure.DeepEqual(t, cap(s.ids), int(1e6))
+	_ = s.Close()
 }
 
 func TestRRSeq_FirstID(t *testing.T) {
 	name := fmt.Sprintf("TestRRSeq_FirstID(gomaxprocs:%d)", runtime.GOMAXPROCS(0))
-	rrseq, err := NewRRSeq(name, 1e2, testingRRServerAddrs...)
+	s, err := NewRRSeq(name, 1e2, testingRRServerAddrs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ensure.DeepEqual(t, <-rrseq.GetStream(), seq.ID(1))
+	ensure.DeepEqual(t, <-s.GetStream(), seq.ID(1))
+	_ = s.Close()
 }
 
 // -----------------------------------------------------------------------------
@@ -213,6 +218,7 @@ func benchmarkRRSeq_SingleClient(bufSize int, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = ids.Next()
 	}
+	_ = s.Close()
 }
 
 func BenchmarkRRSeq_BufSize0_SingleClient(b *testing.B) {
@@ -247,6 +253,7 @@ func benchmarkRRSeq_MultiClient_Local(bufSize int, b *testing.B) {
 			_ = ids.Next()
 		}
 	})
+	_ = s.Close()
 }
 
 func BenchmarkRRSeq_BufSize0_MultiClient_Local(b *testing.B) {

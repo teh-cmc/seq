@@ -86,6 +86,10 @@ func TestRRSeq_BufSize1_SingleClient(t *testing.T) {
 	testRRSeq_SingleClient(1, t)
 }
 
+func TestRRSeq_BufSize2_SingleClient(t *testing.T) {
+	testRRSeq_SingleClient(2, t)
+}
+
 func TestRRSeq_BufSize1024_SingleClient(t *testing.T) {
 	testRRSeq_SingleClient(1024, t)
 }
@@ -138,6 +142,10 @@ func TestRRSeq_BufSize1_MultiClient_Local(t *testing.T) {
 	testRRSeq_MultiClient_Local(1, t)
 }
 
+func TestRRSeq_BufSize2_MultiClient_Local(t *testing.T) {
+	testRRSeq_MultiClient_Local(2, t)
+}
+
 func TestRRSeq_BufSize1024_MultiClient_Local(t *testing.T) {
 	testRRSeq_MultiClient_Local(1024, t)
 }
@@ -179,6 +187,10 @@ func TestRRSeq_BufSize1_ConcurrentClients256_Local(t *testing.T) {
 	testRRSeq_ConcurrentClients256_Local(1, t)
 }
 
+func TestRRSeq_BufSize2_ConcurrentClients256_Local(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Local(2, t)
+}
+
 func TestRRSeq_BufSize1024_ConcurrentClients256_Local(t *testing.T) {
 	testRRSeq_ConcurrentClients256_Local(1024, t)
 }
@@ -211,6 +223,10 @@ func BenchmarkRRSeq_BufSize1_SingleClient(b *testing.B) {
 	benchmarkRRSeq_SingleClient(1, b)
 }
 
+func BenchmarkRRSeq_BufSize2_SingleClient(b *testing.B) {
+	benchmarkRRSeq_SingleClient(2, b)
+}
+
 func BenchmarkRRSeq_BufSize1024_SingleClient(b *testing.B) {
 	benchmarkRRSeq_SingleClient(1024, b)
 }
@@ -241,6 +257,10 @@ func BenchmarkRRSeq_BufSize1_MultiClient_Local(b *testing.B) {
 	benchmarkRRSeq_MultiClient_Local(1, b)
 }
 
+func BenchmarkRRSeq_BufSize2_MultiClient_Local(b *testing.B) {
+	benchmarkRRSeq_MultiClient_Local(2, b)
+}
+
 func BenchmarkRRSeq_BufSize1024_MultiClient_Local(b *testing.B) {
 	benchmarkRRSeq_MultiClient_Local(1024, b)
 }
@@ -256,11 +276,11 @@ func ExampleRRSeq() {
 	ids := make([]seq.ID, 0)
 	for id := range s.GetStream() {
 		ids = append(ids, id)
-		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
+		if id == 10 { // won't stop until 11: 11 is already buffered
 			_ = s.Close()
 		}
 	}
 	fmt.Println(ids)
 
-	// Output: [1 2 3 4 5 6 7 8 9 10 11 12]
+	// Output: [1 2 3 4 5 6 7 8 9 10 11]
 }

@@ -202,6 +202,76 @@ func TestRRSeq_BufSize1024_ConcurrentClients256_Local(t *testing.T) {
 
 // -----------------------------------------------------------------------------
 
+// This is certainly the most important of the standard (i.e. non-mayhem) tests,
+// as it checks that a cluster of `RRServer`s, being bombarded of NextID queries
+// on its every nodes, still consistently deliver coherent, sequential `ID`s.
+func testRRSeq_ConcurrentClients256_Distributed(bufSize int, t *testing.T) {
+	name := fmt.Sprintf(
+		"testRRSeq_ConcurrentClients256_Distributed(bufsz:%d)(gomaxprocs:%d)",
+		bufSize, runtime.GOMAXPROCS(0),
+	)
+	s, err := NewRRSeq(name, bufSize, testingRRServerAddrs...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		<-time.After(time.Millisecond * 1000)
+		_ = s.Close()
+	}()
+
+	ids := make(seq.IDSlice, 0, 256*bufSize*10)
+	idsLock := &sync.Mutex{}
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 256; i++ {
+		wg.Add(1)
+		go func(ii int) {
+			allIDs := make(seq.IDSlice, 0, bufSize*10)
+			lastID := seq.ID(0)
+			for id := range s.GetStream() {
+				ensure.True(t, id > lastID)
+				lastID = id
+				allIDs = append(allIDs, id)
+			}
+			wg.Done()
+
+			idsLock.Lock()
+			ids = append(ids, allIDs...)
+			idsLock.Unlock()
+		}(i)
+	}
+	wg.Wait()
+
+	// this checks that, within a healthy cluster, the complete set of `ID`s
+	// returned is monotonically increasing
+	ids = ids.Sort()
+	for i := 0; i < len(ids)-1; i++ {
+		ensure.True(t, ids[i]+1 == ids[i+1])
+	}
+}
+
+func TestRRSeq_BufSize0_ConcurrentClients256_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Distributed(0, t)
+}
+
+func TestRRSeq_BufSize1_ConcurrentClients256_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Distributed(1, t)
+}
+
+func TestRRSeq_BufSize2_ConcurrentClients256_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Distributed(2, t)
+}
+
+func TestRRSeq_BufSize1024_ConcurrentClients256_Distributed(t *testing.T) {
+	testRRSeq_ConcurrentClients256_Distributed(1024, t)
+}
+
+// -----------------------------------------------------------------------------
+
 // NOTE: run these benchmarks with `go test -run=none -bench=. -cpu 1,8,32`
 
 func benchmarkRRSeq_SingleClient(bufSize int, b *testing.B) {

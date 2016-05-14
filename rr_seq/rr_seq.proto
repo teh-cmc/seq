@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package rrs;
+
+service RRAPI {
+    rpc GRPCNextID (NextIDRequest) returns (NextIDReply) {}
+    rpc GRPCCurID  (CurIDRequest)  returns (CurIDReply)  {}
+    rpc GRPCSetID  (SetIDRequest)  returns (SetIDReply)  {}
+}
+
+message NextIDRequest {
+    string name = 1;
+    int64  range_size = 2;
+}
+message NextIDReply {
+    uint64 from_id = 1;
+    uint64 to_id = 2;
+}
+
+message CurIDRequest {
+    string name = 1;
+}
+message CurIDReply {
+    uint64 cur_id = 1;
+}
+
+message SetIDRequest {
+    string name = 1;
+    uint64 new_id = 2;
+}
+message SetIDReply {
+    bool success = 1;
+}

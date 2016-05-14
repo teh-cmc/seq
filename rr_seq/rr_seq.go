@@ -49,30 +49,31 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 	wg.Add(1)
 	go func() { // background buffering routine
 		defer wg.Done()
+		switched := false
 		for {
 
 			// if the current range has already been half (or more) consumed,
 			// fetch and store the next available range from the cluster
-			if curRange[0] >= curRange[1]/2 {
+			if curRange[0] >= (curRange[0]+curRange[1])/2 && !switched {
 				nextRange[0], nextRange[1] = rrseq.getNextRange(name, bufSize)
-				// if the current range has been entirely consumed,
-				// replace the current range by the already stored next range
-				if curRange[0] >= curRange[1] {
-					curRange = nextRange
-				}
+				switched = true
+			}
+			// if the current range has been entirely consumed,
+			// replace the current range by the already stored next range
+			if curRange[0] >= curRange[1] {
+				curRange = nextRange
+				switched = false
 			}
 
 			select {
 			case <-stop: // stream has been closed, kill routine
 				return
 			default:
-				if curRange[0] < curRange[1] {
-					select {
-					case ids <- curRange[0]: // blocks once `seq` is full
-						curRange[0]++
-					case <-stop: // stream has been closed, kill routine
-						return
-					}
+				select {
+				case ids <- curRange[0]: // blocks once `seq` is full
+					curRange[0]++
+				case <-stop: // stream has been closed, kill routine
+					return
 				}
 			}
 

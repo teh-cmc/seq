@@ -77,6 +77,8 @@ func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
 	}
 
 	cp, err := newRRAPIPool(peerAddrs...)
+	//         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+	// will wait indefinitely until every specified peers are up & running
 	if err != nil {
 		return nil, err
 	}

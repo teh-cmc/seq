@@ -21,7 +21,7 @@ func init() {
 
 	var err error
 	for i := int64(0); i < nbServers; i++ {
-		testingRRServers[i], err = NewRRServer(":0") // warning: 0 peer
+		testingRRServers[i], err = NewRRServer(":0", "") // warning: 0 peer
 		if err != nil {
 			panic(err)
 		}

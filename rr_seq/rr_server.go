@@ -85,6 +85,8 @@ type RRServer struct {
 
 	cp  *rpc.Pool
 	ids *lockedIDMap
+
+	f *os.File
 }
 
 // NewRRServer returns a new `RRServer` that forms a cluster with the specified
@@ -99,14 +101,38 @@ type RRServer struct {
 // Set `addr` to "<host>:0" if you want to be assigned a port automatically,
 // you can then retrieve the address of the server with `RRServer.Addr()`.
 //
+// Passing a non-empty `path` enables persistence to disk: the server will always
+// write the new `ID` to disk before returning it to the client.
+// Although this can severely impact performance, it allows the cluster to stay
+// consistent even in the face of total failures (i.e. all nodes have
+// simultaneously crashed).
+// With disk synchronization disabled, an in-memory cluster of `RRServer`s can
+// only sustain up to N-(N/2+1) (i.e. N-QUORUM) simultaneous node failures before
+// losing its consistency guarantees.
+//
 // NOTE: you should always have an odd number of at least 3 nodes in your
 // cluster to guarantee the availability of the system in case of a
 // "half & (almost) half" netsplit situation.
 //
-// TODO: fsync support.
-// TODO: AddPeer support.
-func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
-	serv := &RRServer{}
+// TODO(very-low-prio): AddPeer support.
+func NewRRServer(addr string, path string, peerAddrs ...string) (*RRServer, error) {
+	serv := &RRServer{
+		ids: &lockedIDMap{
+			RWMutex: &sync.RWMutex{},
+			ids:     make(map[string]*lockedID),
+		},
+	}
+
+	if len(path) > 0 { // enable disk persistence
+		f, err := os.OpenFile(path, os.O_RDWR, 0600)
+		if err != nil {
+			return nil, err
+		}
+		serv.f = f
+		if err := serv.ids.Load(f); err != nil { // load map from disk
+			return nil, err
+		}
+	}
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -129,12 +155,6 @@ func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
 		return nil, err
 	}
 	serv.cp = cp
-
-	ids := &lockedIDMap{
-		RWMutex: &sync.RWMutex{},
-		ids:     make(map[string]*lockedID),
-	}
-	serv.ids = ids
 
 	return serv, nil
 }
@@ -166,6 +186,7 @@ func (s *RRServer) Close() error {
 //
 // `name` is the name of the sequence; a `RRServer` can hold as many sequences
 // as you deem necessary.
+//
 // `rangeSize` will default to 1 in case it is < 1.
 //
 // TODO: server-side retries (note: can induce gaps)
@@ -188,6 +209,15 @@ func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	fromID, toID := s.setHighestID(name, highestID, rangeSize, nbQuorum, peerConns)
 	if fromID == 0 || toID == 0 { // just emphasizing the fast that this can return [0,0)
 		return 0, 0
+	}
+
+	if s.f != nil { // disk persistence enabled
+		if s.ids.Dump(s.f) != nil {
+			// this will create a necessary gap in the sequence, since we've already
+			// managed to set the new `ID` on `nbQuorum` nodes
+			// it is unavoidable if we want to guarantee consistency within the cluster
+			return 0, 0
+		}
 	}
 
 	return fromID, toID
@@ -391,6 +421,5 @@ func (s *RRServer) setPeerID(
 // It returns `true` on success; or `false` otherwise (e.g. curID >= newID).
 func (s *RRServer) SetID(name string, newID seq.ID) bool { return s.setID(name, newID) }
 func (s *RRServer) GRPCSetID(ctx context.Context, in *SetIDRequest) (*SetIDReply, error) {
-	success := s.SetID(in.Name, seq.ID(in.NewId))
-	return &SetIDReply{Success: success}, nil
+	return &SetIDReply{Success: s.SetID(in.Name, seq.ID(in.NewId))}, nil
 }

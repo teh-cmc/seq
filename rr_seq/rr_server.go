@@ -219,15 +219,6 @@ func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 		return 0, 0
 	}
 
-	if s.f != nil { // disk persistence enabled
-		if s.ids.Dump(s.f) != nil {
-			// this will create a necessary gap in the sequence, since we've already
-			// managed to set the new `ID` on `nbQuorum` nodes
-			// it is unavoidable if we want to guarantee consistency within the cluster
-			return 0, 0
-		}
-	}
-
 	return fromID, toID
 }
 func (s *RRServer) GRPCNextID(ctx context.Context, in *NextIDRequest) (*NextIDReply, error) {
@@ -390,8 +381,17 @@ func (s *RRServer) setID(name string, id seq.ID) bool {
 	s.ids.Unlock()
 
 	lockID.Lock()
+	var prev seq.ID
 	if lockID.id < id { // current `ID` found, check that it's < newID
-		lockID.id = id
+		prev, lockID.id = lockID.id, id
+
+		if s.f != nil { // disk persistence enabled
+			if s.ids.Dump(s.f) != nil {
+				lockID.id = prev // persisting failed, rollback ID
+				return false
+			}
+		}
+
 		lockID.Unlock()
 		return true
 	}

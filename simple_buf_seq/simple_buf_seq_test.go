@@ -57,7 +57,7 @@ func TestSimpleBufSeq_BufSize1024_SingleClient(t *testing.T) {
 
 // -----------------------------------------------------------------------------
 
-func testSimpleBufSeq_MultiClient(bufSize int, t *testing.T) {
+func testSimpleBufSeq_MultiClients(bufSize int, t *testing.T) {
 	s := NewSimpleBufSeq(bufSize)
 	lastID := seq.ID(0)
 
@@ -89,16 +89,16 @@ func testSimpleBufSeq_MultiClient(bufSize int, t *testing.T) {
 	}
 }
 
-func TestSimpleBufSeq_BufSize0_MultiClient(t *testing.T) {
-	testSimpleBufSeq_MultiClient(0, t)
+func TestSimpleBufSeq_BufSize0_MultiClients(t *testing.T) {
+	testSimpleBufSeq_MultiClients(0, t)
 }
 
-func TestSimpleBufSeq_BufSize1_MultiClient(t *testing.T) {
-	testSimpleBufSeq_MultiClient(1, t)
+func TestSimpleBufSeq_BufSize1_MultiClients(t *testing.T) {
+	testSimpleBufSeq_MultiClients(1, t)
 }
 
-func TestSimpleBufSeq_BufSize1024_MultiClient(t *testing.T) {
-	testSimpleBufSeq_MultiClient(1024, t)
+func TestSimpleBufSeq_BufSize1024_MultiClients(t *testing.T) {
+	testSimpleBufSeq_MultiClients(1024, t)
 }
 
 // -----------------------------------------------------------------------------
@@ -136,7 +136,7 @@ func testSimpleBufSeq_ConcurrentClients256(bufSize int, t *testing.T) {
 	wg.Wait()
 
 	// check that the entire set of `ID`s returned is sequential and
-	// monotonically increasing as a whole.
+	// monotonically increasing as a whole
 	ids = ids.Sort()
 	for i := 0; i < len(ids)-1; i++ {
 		ensure.True(t, ids[i]+1 == ids[i+1])
@@ -178,7 +178,7 @@ func BenchmarkSimpleBufSeq_BufSize1024_SingleClient(b *testing.B) {
 
 // -----------------------------------------------------------------------------
 
-func benchmarkSimpleBufSeq_MultiClient(bufSize int, b *testing.B) {
+func benchmarkSimpleBufSeq_ConcurrentClients(bufSize int, b *testing.B) {
 	s := NewSimpleBufSeq(bufSize)
 	b.RunParallel(func(pb *testing.PB) {
 		ids := s.Stream()
@@ -188,16 +188,16 @@ func benchmarkSimpleBufSeq_MultiClient(bufSize int, b *testing.B) {
 	})
 }
 
-func BenchmarkSimpleBufSeq_BufSize0_MultiClient(b *testing.B) {
-	benchmarkSimpleBufSeq_MultiClient(0, b)
+func BenchmarkSimpleBufSeq_BufSize0_ConcurrentClients(b *testing.B) {
+	benchmarkSimpleBufSeq_ConcurrentClients(0, b)
 }
 
-func BenchmarkSimpleBufSeq_BufSize1_MultiClient(b *testing.B) {
-	benchmarkSimpleBufSeq_MultiClient(1, b)
+func BenchmarkSimpleBufSeq_BufSize1_ConcurrentClients(b *testing.B) {
+	benchmarkSimpleBufSeq_ConcurrentClients(1, b)
 }
 
-func BenchmarkSimpleBufSeq_BufSize1024_MultiClient(b *testing.B) {
-	benchmarkSimpleBufSeq_MultiClient(1024, b)
+func BenchmarkSimpleBufSeq_BufSize1024_ConcurrentClients(b *testing.B) {
+	benchmarkSimpleBufSeq_ConcurrentClients(1024, b)
 }
 
 // -----------------------------------------------------------------------------

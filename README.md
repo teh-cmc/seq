@@ -168,4 +168,4 @@ Although this model offers you great performance and linear horizontal scalabili
 
 The MIT License (MIT) - see LICENSE for more details
 
-Copyright (c) 2015	Clement 'cmc' Rey	<cr.rey.clement@gmail.com> [@teh_cmc](https://twitter.com/teh_cm://twitter.com/teh_cmc)
+Copyright (c) 2015	Clement 'cmc' Rey	<cr.rey.clement@gmail.com> [@teh_cmc](https://twitter.com/teh_cmc)

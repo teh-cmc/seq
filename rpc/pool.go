@@ -3,6 +3,8 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// Package rpc implements a generic, thread-safe, round-robin based pool of
+// GRPC connections.
 package rpc
 
 import (
@@ -14,7 +16,7 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// Pool implements a generic, thread-safe round-robin based, pool of
+// Pool implements a generic, thread-safe, round-robin based pool of
 // GRPC connections.
 //
 // All methods of a `Pool` are thread-safe.

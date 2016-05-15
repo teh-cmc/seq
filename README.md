@@ -37,7 +37,7 @@ If you're looking for the actual implementation's README, [click here](/rr_seq).
 
 **(1)**: This [document](/README.md) (succinctly) presents various ways of tackling the problem of distributed sequences. It links to more detailed and particularly interesting readings when necessary.
 
-**(2)**: This [file](/sequencer.go) implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depends on.
+**(2)**: This [file](/sequencer.go) implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depend on.
 
 **(3)**: [Package `simple_buf_seq`](/simple_buf_seq) implements a simple, non-distributed, buffered `Sequencer` backed by a local, atomic, monotonically increasing 64bits value.  
 A `SimpleBufSeq` is not particularly interesting in and of itself; but it provides a performance baseline that can, and will, later be used as a point of comparison for more complex implementations.

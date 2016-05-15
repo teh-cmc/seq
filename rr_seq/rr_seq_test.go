@@ -56,7 +56,7 @@ func TestRRSeq_FirstID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ensure.DeepEqual(t, <-s.GetStream(), seq.ID(1))
+	ensure.DeepEqual(t, <-s.Stream(), seq.ID(1))
 	_ = s.Close()
 }
 
@@ -77,7 +77,7 @@ func testRRSeq_SingleClient(bufSize int, t *testing.T) {
 		_ = s.Close()
 	}()
 
-	for id := range s.GetStream() {
+	for id := range s.Stream() {
 		ensure.DeepEqual(t, id, lastID+1)
 		lastID = id
 	}
@@ -116,7 +116,7 @@ func testRRSeq_MultiClient_Local(bufSize int, t *testing.T) {
 		_ = s.Close()
 	}()
 
-	s1, s2, s3 := s.GetStream(), s.GetStream(), s.GetStream()
+	s1, s2, s3 := s.Stream(), s.Stream(), s.Stream()
 	for {
 		id1 := s1.Next()
 		if id1 == 0 {
@@ -175,7 +175,7 @@ func testRRSeq_ConcurrentClients256_Local(bufSize int, t *testing.T) {
 	for i := 0; i < 256; i++ {
 		wg.Add(1)
 		go func() {
-			for id := range s.GetStream() {
+			for id := range s.Stream() {
 				_ = id
 			}
 			wg.Done()
@@ -225,7 +225,7 @@ func testRRSeq_ConcurrentClients32_Distributed(bufSize int, t *testing.T) {
 			allIDs := make(seq.IDSlice, 0, (bufSize+1)*10)
 			lastID := seq.ID(0)
 			j := 0
-			for id := range s.GetStream() {
+			for id := range s.Stream() {
 				if j >= len(allIDs) {
 					break
 				}
@@ -281,7 +281,7 @@ func benchmarkRRSeq_SingleClient(bufSize int, b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	ids := s.GetStream()
+	ids := s.Stream()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -317,7 +317,7 @@ func benchmarkRRSeq_MultiClient_Local(bufSize int, b *testing.B) {
 		b.Fatal(err)
 	}
 	b.RunParallel(func(pb *testing.PB) {
-		ids := s.GetStream()
+		ids := s.Stream()
 		for pb.Next() {
 			_ = ids.Next()
 		}
@@ -350,7 +350,7 @@ func ExampleRRSeq() {
 	}
 
 	ids := make([]seq.ID, 0)
-	for id := range s.GetStream() {
+	for id := range s.Stream() {
 		ids = append(ids, id)
 		if id == 10 { // won't stop until 11: 11 is already buffered
 			_ = s.Close()

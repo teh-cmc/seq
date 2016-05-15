@@ -22,7 +22,7 @@ func TestSimpleBufSeq_New_BufSize(t *testing.T) {
 }
 
 func TestSimpleBufSeq_FirstID(t *testing.T) {
-	ensure.DeepEqual(t, <-NewSimpleBufSeq(1e2).GetStream(), seq.ID(1))
+	ensure.DeepEqual(t, <-NewSimpleBufSeq(1e2).Stream(), seq.ID(1))
 }
 
 // -----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ func testSimpleBufSeq_SingleClient(bufSize int, t *testing.T) {
 		_ = s.Close()
 	}()
 
-	for id := range s.GetStream() {
+	for id := range s.Stream() {
 		ensure.DeepEqual(t, id, lastID+1)
 		lastID = id
 	}
@@ -65,7 +65,7 @@ func testSimpleBufSeq_MultiClient(bufSize int, t *testing.T) {
 		_ = s.Close()
 	}()
 
-	s1, s2, s3 := s.GetStream(), s.GetStream(), s.GetStream()
+	s1, s2, s3 := s.Stream(), s.Stream(), s.Stream()
 	for {
 		id1 := s1.Next()
 		if id1 == 0 {
@@ -114,7 +114,7 @@ func testSimpleBufSeq_ConcurrentClients256(bufSize int, t *testing.T) {
 	for i := 0; i < 256; i++ {
 		wg.Add(1)
 		go func() {
-			for id := range s.GetStream() {
+			for id := range s.Stream() {
 				_ = id
 			}
 			wg.Done()
@@ -140,7 +140,7 @@ func TestSimpleBufSeq_BufSize1024_ConcurrentClients256(t *testing.T) {
 // NOTE: run these benchmarks with `go test -run=none -bench=. -cpu 1,8,32`
 
 func benchmarkSimpleBufSeq_SingleClient(bufSize int, b *testing.B) {
-	s := NewSimpleBufSeq(bufSize).GetStream()
+	s := NewSimpleBufSeq(bufSize).Stream()
 	for i := 0; i < b.N; i++ {
 		_ = s.Next()
 	}
@@ -163,7 +163,7 @@ func BenchmarkSimpleBufSeq_BufSize1024_SingleClient(b *testing.B) {
 func benchmarkSimpleBufSeq_MultiClient(bufSize int, b *testing.B) {
 	s := NewSimpleBufSeq(bufSize)
 	b.RunParallel(func(pb *testing.PB) {
-		ids := s.GetStream()
+		ids := s.Stream()
 		for pb.Next() {
 			_ = ids.Next()
 		}
@@ -188,7 +188,7 @@ func ExampleSimpleBufSeq() {
 	s := NewSimpleBufSeq(2)
 
 	ids := make([]seq.ID, 0)
-	for id := range s.GetStream() {
+	for id := range s.Stream() {
 		ids = append(ids, id)
 		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
 			_ = s.Close()

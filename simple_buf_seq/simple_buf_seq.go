@@ -59,9 +59,9 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 	return &SimpleBufSeq{ids: ids, stop: stop, wg: wg}
 }
 
-// GetStream returns a pre-buffered, range-able stream of monotonically
+// Stream returns a pre-buffered, range-able stream of monotonically
 // increasing IDs, starting at `1`.
-func (ss SimpleBufSeq) GetStream() seq.IDStream { return ss.ids }
+func (ss SimpleBufSeq) Stream() seq.IDStream { return ss.ids }
 
 // Close closes the associated `IDStream`.
 // It always returns `nil`.

@@ -102,9 +102,9 @@ func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
 	return seq.ID(idReply.FromId), seq.ID(idReply.ToId)
 }
 
-// GetStream returns a pre-buffered, range-able stream of sequential `ID`s,
-// starting at `1`.
-func (ss RRSeq) GetStream() seq.IDStream { return ss.ids }
+// Stream returns a pre-buffered, range-able stream of sequential `ID`s,
+// starting at `ID(1)`.
+func (ss RRSeq) Stream() seq.IDStream { return ss.ids }
 
 // Close closes the associated `IDStream`.
 //

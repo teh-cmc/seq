@@ -23,7 +23,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	var f *os.File
+	var err error
+
+	f, err = os.Open(flag.Arg(1))
+	if err != nil {
+		f, err = os.Create(flag.Arg(1))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	_ = f.Close()
+
 	s, err := rrs.NewRRServer(flag.Arg(0), flag.Arg(1), flag.Args()[2:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("ready")
 
 	c := make(chan os.Signal, 1)

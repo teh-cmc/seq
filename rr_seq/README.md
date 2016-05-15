@@ -58,9 +58,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	f, err := os.Create(flag.Arg(1))
+	var f *os.File
+	var err error
+
+	f, err = os.Open(flag.Arg(1))
 	if err != nil {
-		log.Fatal(err)
+		f, err = os.Create(flag.Arg(1))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	_ = f.Close()
 

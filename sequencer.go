@@ -3,6 +3,13 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// Package seq offers a gentle overview of the possible design solutions to the
+// common problem of generating sequential / monotonically increasing IDs in a
+// distributed system.
+//
+// Specifically, it focuses on maximizing performances and guaranteeing a fair
+// distribution of the workload between the nodes as the size of the cluster
+// increases.
 package seq
 
 import "sort"

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package rrs;
+package pb;
 
 service RRAPI {
     rpc GRPCNextID (NextIDRequest) returns (NextIDReply) {}

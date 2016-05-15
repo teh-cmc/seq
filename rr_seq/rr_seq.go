@@ -8,6 +8,7 @@ import (
 
 	"github.com/teh-cmc/seq"
 	"github.com/teh-cmc/seq/rpc"
+	"github.com/teh-cmc/seq/rr_seq/pb"
 )
 
 // -----------------------------------------------------------------------------
@@ -121,11 +122,11 @@ func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
 	deadline := time.Second * 4 // TODO(low-prio): make this configurable
 	ctx, canceller := context.WithTimeout(context.Background(), deadline)
 
-	idReply, err := NewRRAPIClient(conn).GRPCNextID(
+	idReply, err := pb.NewRRAPIClient(conn).GRPCNextID(
 		ctx, // request will be cancelled if it lasts more than `deadline`,
 		//      or if we've been trying to reconnect for more than `deadline`;
 		//      in any case, this results in `err != nil`
-		&NextIDRequest{Name: name, RangeSize: int64(rangeSize)},
+		&pb.NextIDRequest{Name: name, RangeSize: int64(rangeSize)},
 	)
 	canceller() // we got what we came for, stop everything downstream
 	if err != nil {

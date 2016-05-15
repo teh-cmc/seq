@@ -11,6 +11,7 @@ import (
 
 	"github.com/teh-cmc/seq"
 	"github.com/teh-cmc/seq/rpc"
+	"github.com/teh-cmc/seq/rr_seq/pb"
 
 	"golang.org/x/net/context"
 )
@@ -146,7 +147,7 @@ func NewRRServer(addr string, path string, peerAddrs ...string) (*RRServer, erro
 		return nil, err
 	}
 	serv.Server = grpc.NewServer()
-	RegisterRRAPIServer(serv.Server, serv)
+	pb.RegisterRRAPIServer(serv.Server, serv)
 	serv.addr = ln.Addr()
 	go serv.Serve(ln)
 
@@ -239,9 +240,9 @@ func (s *RRServer) NextID(
 	}
 }
 
-func (s *RRServer) GRPCNextID(ctx context.Context, in *NextIDRequest) (*NextIDReply, error) {
+func (s *RRServer) GRPCNextID(ctx context.Context, in *pb.NextIDRequest) (*pb.NextIDReply, error) {
 	fromID, toID := s.NextID(in.Name, in.RangeSize, ctx)
-	return &NextIDReply{FromId: uint64(fromID), ToId: uint64(toID)}, nil
+	return &pb.NextIDReply{FromId: uint64(fromID), ToId: uint64(toID)}, nil
 }
 
 // getHighestID returns the highest `ID` cluster-wide.
@@ -268,7 +269,7 @@ func (s *RRServer) getHighestID(
 	ids <- s.getID(name)
 	for _, pc := range peerConns {
 		wg.Add(1)
-		go s.getPeerID(NewRRAPIClient(pc), name, ids, wg, ctxL2)
+		go s.getPeerID(pb.NewRRAPIClient(pc), name, ids, wg, ctxL2)
 	}
 
 	highestID := seq.ID(1)
@@ -325,7 +326,7 @@ func (s *RRServer) setHighestID(
 	successes <- s.setID(name, newID)
 	for _, pc := range peerConns {
 		wg.Add(1)
-		go s.setPeerID(NewRRAPIClient(pc), name, newID, successes, wg, ctxL2)
+		go s.setPeerID(pb.NewRRAPIClient(pc), name, newID, successes, wg, ctxL2)
 	}
 
 	var fromID, toID seq.ID
@@ -379,7 +380,7 @@ func (s *RRServer) getID(name string) seq.ID {
 // NOTE: the `ctxL2` parameter is variable only because it is optional: only
 // the first context passed will be used.
 func (s *RRServer) getPeerID(
-	peer RRAPIClient,
+	peer pb.RRAPIClient,
 	name string,
 	ret chan<- seq.ID, wg *sync.WaitGroup,
 	ctxL2 ...context.Context,
@@ -391,7 +392,7 @@ func (s *RRServer) getPeerID(
 		ctxL3 = ctxL2[0]
 	}
 
-	idReply, err := peer.GRPCCurID(ctxL3, &CurIDRequest{Name: name})
+	idReply, err := peer.GRPCCurID(ctxL3, &pb.CurIDRequest{Name: name})
 	if err != nil {
 		ret <- seq.ID(0)
 		return err
@@ -405,7 +406,7 @@ func (s *RRServer) getPeerID(
 //
 // It returns `ID(0)` on failures.
 func (s *RRServer) CurID(name string) seq.ID { return s.getID(name) }
-func (s *RRServer) GRPCCurID(ctx context.Context, in *CurIDRequest) (*CurIDReply, error) {
+func (s *RRServer) GRPCCurID(ctx context.Context, in *pb.CurIDRequest) (*pb.CurIDReply, error) {
 	idChan := make(chan seq.ID)
 	go func() { idChan <- s.CurID(in.Name) }()
 
@@ -415,7 +416,7 @@ func (s *RRServer) GRPCCurID(ctx context.Context, in *CurIDRequest) (*CurIDReply
 	case id = <-idChan:
 	}
 
-	return &CurIDReply{CurId: uint64(id)}, nil
+	return &pb.CurIDReply{CurId: uint64(id)}, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -459,7 +460,7 @@ func (s *RRServer) setID(name string, id seq.ID) bool {
 //
 // It pushes `true` in `ret` on successes; or `false` otherwise (e.g. curID >= newID).
 func (s *RRServer) setPeerID(
-	peer RRAPIClient,
+	peer pb.RRAPIClient,
 	name string, id seq.ID,
 	ret chan<- bool, wg *sync.WaitGroup,
 	ctxL2 ...context.Context,
@@ -471,7 +472,7 @@ func (s *RRServer) setPeerID(
 		ctxL3 = ctxL2[0]
 	}
 
-	idReply, err := peer.GRPCSetID(ctxL3, &SetIDRequest{Name: name, NewId: uint64(id)})
+	idReply, err := peer.GRPCSetID(ctxL3, &pb.SetIDRequest{Name: name, NewId: uint64(id)})
 	if err != nil {
 		ret <- false
 		return err
@@ -484,7 +485,7 @@ func (s *RRServer) setPeerID(
 //
 // It returns `true` on success; or `false` otherwise (e.g. curID >= newID).
 func (s *RRServer) SetID(name string, newID seq.ID) bool { return s.setID(name, newID) }
-func (s *RRServer) GRPCSetID(ctx context.Context, in *SetIDRequest) (*SetIDReply, error) {
+func (s *RRServer) GRPCSetID(ctx context.Context, in *pb.SetIDRequest) (*pb.SetIDReply, error) {
 	successChan := make(chan bool)
 	go func() { successChan <- s.SetID(in.Name, seq.ID(in.NewId)) }()
 
@@ -494,5 +495,5 @@ func (s *RRServer) GRPCSetID(ctx context.Context, in *SetIDRequest) (*SetIDReply
 	case success = <-successChan:
 	}
 
-	return &SetIDReply{Success: success}, nil
+	return &pb.SetIDReply{Success: success}, nil
 }

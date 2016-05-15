@@ -2,6 +2,7 @@ package rrs
 
 import (
 	"sync"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -97,18 +98,39 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 
 // getNextRange fetches the next available range of `ID`s from the cluster
 // of `RRServer`s.
+//
+// getNextRange returns the empty [0;0) range on failures; which means that the
+// buffering routine will be retrying soon, using another peer (because round-robin).
+//
+// A deadline is set so that queries and reconnection attemps cannot last
+// forever.
+// For queries, this deadline is propagated through the various calls made
+// within the cluster of `RRServer`s. This means that the time spent in
+// intra-cluster RPC calls is included in this deadline.
+//
+// An exceeded deadline behaves as an error, and as such it returns the empty
+// [0;0) range.
+//
+// NOTE: the deadline is hardcoded for now.
 func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
 	conn := ss.cp.ConnRoundRobin()
 	if conn == nil { // no healthy connection available
 		return 0, 0 // return empty range, this will toggle the retry machinery
 	}
+
+	deadline := time.Second * 4 // TODO(low-prio): make this configurable
+	ctx, _ := context.WithTimeout(context.Background(), deadline)
+
 	idReply, err := NewRRAPIClient(conn).GRPCNextID(
-		context.TODO(), // TODO: handle timeouts & cancellations
+		ctx, // request will be cancelled if it lasts more than `deadline`,
+		//      or if we've been trying to reconnect for more than `deadline`;
+		//      in any case, this results in `err != nil`
 		&NextIDRequest{Name: name, RangeSize: int64(rangeSize)},
 	)
 	if err != nil {
 		return 0, 0 // return empty range, this will toggle the retry machinery
 	}
+
 	return seq.ID(idReply.FromId), seq.ID(idReply.ToId)
 }
 

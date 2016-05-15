@@ -18,6 +18,7 @@ Specifically, it focuses on maximizing performances and guaranteeing a fair dist
       - [How?](#how)
       - [Trade-offs](#trade-offs)
       - [Further reading](#further-reading-2)
+  - [License](#license)
 
 ## Organization
 
@@ -162,3 +163,9 @@ Although this model offers you great performance and linear horizontal scalabili
 - Justin Sheehy's ["There is No Now"](http://queue.acm.org/detail.cfm?id=2745385) is a great and thorough article regarding time in distributed environments.
 - Martin Kleppmann's [post about Redis' Redlock](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) is a fantastic analysis of how-so unfortunate timing issues can have serious consequences in distributed systems.
 - Mikito Takada (aka. Mixu)'s short book: ["Distributed systems: for fun and profit"](http://book.mixu.net/distsys/single-page.html) is a classic introduction to distributed systems with a section dedicated to the subject of timing and ordering assumptions.
+
+## License ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=plastic)
+
+The MIT License (MIT) - see LICENSE for more details
+
+Copyright (c) 2015	Clement 'cmc' Rey	<cr.rey.clement@gmail.com> [@teh_cmc](https://twitter.com/teh_cm://twitter.com/teh_cmc)

@@ -163,7 +163,7 @@ func NewRRServer(addr string, path string, peerAddrs ...string) (*RRServer, erro
 		log.Printf("warning: uneven number of nodes in the cluster\n")
 	}
 
-	cp, err := rpc.NewPool(peerAddrs...) // blocks until all connections are established
+	cp, err := rpc.NewPool(peerAddrs...)
 	if err != nil {
 		return nil, err
 	}

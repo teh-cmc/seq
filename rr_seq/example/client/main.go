@@ -47,7 +47,11 @@ infLoop:
 		case <-c:
 			break infLoop
 		case <-time.After(time.Duration(delay) * time.Millisecond):
-			log.Println("Got:", ids.Next())
+			select {
+			case id := <-ids:
+				log.Println("Got:", id)
+			default:
+			}
 		}
 	}
 

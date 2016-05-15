@@ -29,9 +29,6 @@ type Pool struct {
 // NewPool returns a new `Pool` with one established connection
 // for each specified address.
 //
-// It will block until all connections have not been established.
-// There are no deadlines/timeouts.
-//
 // NewPool fails if any of the connections fails.
 func NewPool(addrs ...string) (*Pool, error) {
 	p := &Pool{
@@ -52,12 +49,9 @@ func NewPool(addrs ...string) (*Pool, error) {
 }
 
 // Add adds a new connection to the pool.
-//
-// It blocks until the connection has been successfully established.
 func (p *Pool) Add(addr string) error {
 	conn, err := grpc.Dial(addr,
 		grpc.WithInsecure(), // no transport security
-		grpc.WithBlock(),    // blocks until connection is first established
 	)
 	if err != nil {
 		return err

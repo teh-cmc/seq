@@ -49,7 +49,7 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 		bufSize = 0
 	}
 
-	cp, err := rpc.NewPool(addrs...) // blocks until all connections are established
+	cp, err := rpc.NewPool(addrs...)
 	if err != nil {
 		return nil, err
 	}

@@ -92,7 +92,7 @@ There are 3 possible solutions to this new problem, each coming with its own set
 - Keep track, server-side, of the current range associated with each client, and use it when a client comes back from the dead  
   Aside from the evidently added complexity of keeping track of all this information; this could cause scalability issues as the number of *uniquely identified* clients increases.  
   Also, what if a previously dead client never goes back online?  
-- Keep track, on each client, of its current range and make sure to persist it to disk
+- Keep track, on each client, of its current range and make sure to persist it to disk  
   Aside from the evidently added [complexity inherent to client-side caching](http://martinfowler.com/bliki/TwoHardThings.html); this would create a particularly difficult situation due to the fact that the client might crash *after* having received a new range, but *before* having persisted it to disk.  
   The only way to fix that would be to keep the server on hold until the client has notified it about the success of the disk synchronization... How will this affect performance?  
   Also, what if a client never comes back from the dead?  

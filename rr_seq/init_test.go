@@ -21,7 +21,7 @@ func init() {
 
 	var err error
 	for i := int64(0); i < nbServers; i++ {
-		testingRRServers[i], err = NewRRServer(":0")
+		testingRRServers[i], err = NewRRServer(":0") // warning: 0 peer
 		if err != nil {
 			panic(err)
 		}
@@ -29,6 +29,7 @@ func init() {
 	for i, s := range testingRRServers {
 		for j := int64(0); j < nbServers; j++ {
 			if j != int64(i) {
+				// /!\ dynamically adding peers directly to the pool
 				if err := s.cp.Add(testingRRServers[j].Addr().String()); err != nil {
 					panic(err)
 				}

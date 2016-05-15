@@ -1,11 +1,12 @@
 # Seq
 
 This repository offers a gentle overview of the possible design solutions to the common problem of generating sequential / monotonically increasing IDs in a distributed system.  
-Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between nodes as the size of the cluster increases.
+Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between the nodes as the size of the cluster increases.
 
 ## Organization
 
 ```
+(non-interesting stuff omitted)
 .
 ├── (1) README.md
 ├── (2) sequencer.go
@@ -88,4 +89,32 @@ Of course, network IO and lock contention within the cluster will still damage o
 
 ### The Flake model
 
-Although it does not provide sequential IDs per se; the flake-ish way of doing things is such an elegant and performant solution that I *had* to mention it here.
+Although it does not provide sequential IDs per se; the Flake-ish way (named after twitter's [Snowflake](https://github.com/twitter/snowflake/tree/b3f6a3c6ca8e1b6847baa6ff42bf72201e2c2231)) of doing things is such an elegant and performant solution that I *had* to mention it here.  
+The Flake model allows for the generation of unique, roughly time-sortable IDs in a distributed, **shared-nothing** architecture; thus guaranteeing horizontal linear scaling.
+
+#### How?
+
+The basic idea is fairly simple: instead of working with simple integers that you increment each time you need a new ID, you define an ID as the result of the bit-packing of various values.  
+As an example, the original implementation used to use 64bits integers with the following distribution of bits (extracted from Snowflake's documentation):
+
+```
+timestamp - 41 bits (millisecond precision w/ a custom epoch gives us 69 years)
+configured machine id - 10 bits - gives us up to 1024 machines
+sequence number - 12 bits - rolls over every 4096 per machine (with protection to avoid rollover in the same ms)
+```
+
+#### Trade-offs
+
+Although this model offers you great performance and linear horizontal scalability, it comes with some possibly serious trade-offs:  
+- Using the above distribution, you cannot:
+  - have more than 1024 machines in your cluster
+  - handle more than 4096 queries per millisecond per machine
+  - given a cluster of N machines, guarantee the ordering of M IDs that were generated within a range of N milliseconds
+- The system relies on wall-clock time
+  There is a *lot* of literature out there about the dangers of non-logical time in distributed systems (..even with a perfectly configured `ntpd`), so I won't go into details; check the `Further reading` section if you're curious about those things.
+
+#### Further reading
+
+- Justin Sheehy's ["There is No Now"](http://queue.acm.org/detail.cfm?id=2745385) is a great and thorough article regarding time in distributed environments.
+- Martin Kleppmann's [post about Redis' Redlock](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) is a fantastic analysis of how-so unfortunate timing issues can have serious consequences in distributed systems.
+- Mikito Takada (aka. Mixu)'s short book: ["Distributed systems: for fun and profit"](http://book.mixu.net/distsys/single-page.html) is a classic introduction to distributed systems with a section dedicated to the subject of timing and ordering assumptions.

@@ -23,47 +23,64 @@ A `SimpleBufSeq` is not particularly interesting in and of itself; but it provid
 **(5)**: Package `rr_seq` implements a distributed system that guarantees sequential `ID` generation by using RW quorums and read-repair conflict-resolution strategies.  
 It is a direct, heavily documented, tested & benchmarked implementation of the `read-repair + client-side caching` strategy described below.
 
-## Possible designs
+## Common designs
 
-### Consensus protocols
+*Please note that the following might contain mistakes. Corrections and patches are more than welcome.*
 
-Perhaps the most obvious and straightforward way of solving this problem is to implement a distributed locking mechanism upon a consensus protocol such as [Raft](https://raft.github.io/).
+### Consensus protocols (Leader/Followers)
 
-In fact, several tools such as [Consul](https://www.consul.io/) or [ZooKeeper](https://zookeeper.apache.org/) already exist out there, and provide all the necessary abstractions for emulating atomic integers across the network; out of the box.
+Perhaps the most obvious way of solving this problem is to implement a distributed locking mechanism upon a consensus protocol such as [Raft](https://raft.github.io/).
 
-Using these capabilities, it is quite straightforward to expose a `get-and-incr` atomic endpoint for clients to query.
+In fact, several tools like e.g. [Consul](https://www.consul.io/) and [ZooKeeper](https://zookeeper.apache.org/) already exist out there, and provide all the necessary abstractions for emulating atomic integers in a distributed environment; out of the box.
+
+Using these capabilities, it is quite straightforward to expose an atomic `get-and-incr` endpoint for clients to query.
 
 **pros**:
 
-- Strong consistency & sequentiality guarantees  
-  Using a quorum, the system can A) guarantee the sequentiality of the IDs returned over time, and B) assure that there is no "holes" or "gaps" in the sequence.
-- Good fault-tolerance guarantees  
-  The system can and will stay available as long as N/2+1 nodes are still available.
+- Consistency & sequentiality guarantees  
+  By using a quorum combined with a Leader/Followers model, the system can guarantee the generation of monotonically increasing IDs over time.
+- Fault-tolerancy
+  The system can and will stay available as long as N/2+1 (i.e. a quorum) nodes are still available.
 
 **cons**:
 
 - Poor performance  
-  Since every operation requires communication between nodes, most of the time is spent in costly network IO.
+  Since every operation requires communication between nodes, most of the time is spent in costly network I/O.  
+  Also, if the system wants to guarantee consistency even in the event of total failure (i.e. all nodes simultaneously go down), it *must* persist every increment to disk as they happen.  
+  This obviously leads to even worse performances, as the system now spends another significant part of its time doing disk I/O too.  
 - Uneven workload distribution  
-  Due to the nature of the Leader/Follower model; a single node, the leader, is in charge of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).
+  Due to the nature of the Leader/Followers model; a single node, the Leader, is in charge of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).  
+  This also means that, if the Leader dies, the whole system is unavailable for as long as it takes for a new Leader to be elected.
 
 **Further reading**:
 
-- [thesecretlivesofdata](http://thesecretlivesofdata.com/raft/) offers a great visual introduction to the inner workings of the Raft protocol.
+- [thesecretlivesofdata.com](http://thesecretlivesofdata.com/raft/) offers a great visual introduction to the inner workings of the Raft protocol.
+- ["In Search of an Understandable Consensus Algorithm"](http://ramcloud.stanford.edu/raft.pdf), the official Raft paper, describes all the nitty gritty implementation details of such a system.
 
-### Consensus protocols + client-side caching
+#### Batching
 
-A simple enhancement to the *consensus protocols* approach is to batch the fetching of IDs: instead of returning a single ID every time a client queries the service, the system will allocate a *range* of available IDs and return this range to the client.
+A simple enhancement to the *consensus protocols* approach above is to batch the fetching of IDs.  
+I.e., instead of returning a single ID every time a client queries the service, the system would return a *range* of available IDs.
 
-This has the obvious advantage of greatly reducing the number of network calls necessary to obtain N IDs (depending on the size of the ranges used); thus fixing the performance issues of the basic approach.  
-However, this requires the client to maintain a local cache for storing its allocated range, which comes with various drawbacks:  
-- Adds extra application-logic to the client side
-- Can result in "holes" or "gaps" in the sequence if the client loses its cache for any reason (e.g. crash)  
-  (Obviously the client could make sure to persist its cache to avoid this issue; but then you're juste adding even more client-side complexity.)
+This has the obvious advantage of greatly reducing the number of network calls necessary to obtain N IDs (depending on the size of the ranges used), thus fixing the performance issues of the basic approach.  
+However, it introduces a new issue: what happens if a client who's just fetched a range of IDs crashed? Those IDs will be definitely lost, creating potentially large cluster-wide sequence "gaps" in the process.
 
-Overall, the performance boost is certainly worth the extra cost in complexity if the potential discontinuity of the sequence is not considered an issue at the application level.
+There are 3 possible solutions to this new problem, each coming with its own set of trade-offs:  
+1. Accept the fact that your sequence as a whole might have "gaps" in it  
+   The performance boost might be worth the cost if the potential discontinuity of the sequence is not considered an issue at the application level.
+2. Keep track, server-side, of the current range associated with each client, and use it when a client comes back from the dead
+   Aside from the evidently added complexity of keeping track of all this information; this could cause scalability issues as the number of *uniquely identified* clients increases.
+   Also, what if a previously dead client never goes back online?
+3. Keep track, on each client, of its current range and make sure to persist it to disk
+   Aside from the evidently added [complexity inherent to client-side caching](http://martinfowler.com/bliki/TwoHardThings.html); this would create a particularly difficult situation due to the fact that the client might crash *after* having received a new range, but *before* having persisted it to disk.  
+   The only way to fix that would be to keep the server on hold until the client has notified it about the success of the disk synchronization... How will this affect performance?
+   Also, what if a client never comes back from the dead?
 
-Note that the simple *consensus protocols* approach is juste a special case of the *client-side caching* approach; where `range_size == 1`.
+Those new trade-offs probably have solutions of their own, which would certainly bring even more trade-offs and some more solutions to the table.  
+**TL;DR**: As with everything else in life, this is a perpetually recursive rabbit-hole of trade-offs.
+
+Note that the basic approach is just a special case of the batching approach that comes with a batch size of 1; meaning that every issues that applies to one actually applies to the other.  
+I.e. cluster-wide "gaps" are definitely possible even without batches.
 
 ### The read-repair strategy
 

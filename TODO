@@ -7,16 +7,12 @@ README
  9  polish
 
 RR_SEQ
- 2  implement fsync support
  9  implement timeouts & cancellations
  6  implement server-side retries
- 9  implement reconnections
  5  implement AddPeer
  3  atomic query counter
  9  mayhem mode testing
- 9  polish
  9  examples
- 8  generic grpc client pool
  9  vendoring
 
 TRAVIS

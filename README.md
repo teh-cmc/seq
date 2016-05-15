@@ -18,7 +18,7 @@ Specifically, it focuses on maximizing performances and guaranteeing a fair dist
       - [How?](#how)
       - [Trade-offs](#trade-offs)
       - [Further reading](#further-reading-2)
-  - [License](#license)
+  - [License](#license-)
 
 ## Organization
 

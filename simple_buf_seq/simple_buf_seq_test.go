@@ -201,6 +201,10 @@ func BenchmarkSimpleBufSeq_BufSize1_ConcurrentClients(b *testing.B) {
 	benchmarkSimpleBufSeq_ConcurrentClients(1, b)
 }
 
+func BenchmarkSimpleBufSeq_BufSize2_ConcurrentClients(b *testing.B) {
+	benchmarkSimpleBufSeq_ConcurrentClients(2, b)
+}
+
 func BenchmarkSimpleBufSeq_BufSize1024_ConcurrentClients(b *testing.B) {
 	benchmarkSimpleBufSeq_ConcurrentClients(1024, b)
 }

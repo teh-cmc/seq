@@ -4,6 +4,8 @@ This repository offers a gentle overview of the possible design solutions to the
 
 Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between the nodes as the size of the cluster increases.
 
+If you're looking for the actual implementation's README, [click here](/rr_seq).
+
 **Table of contents**
 
 - [Seq](#seq)
@@ -29,20 +31,23 @@ Specifically, it focuses on maximizing performances and guaranteeing a fair dist
 ├── (2) sequencer.go
 ├── (3) simple_buf_seq
 ├── (4) rpc
-└── (5) rr_seq
+├── (5) rr_seq
+└── (6) rr_seq/README.md
 ```
 
-**(1)**: This document (succinctly) presents various ways of tackling the problem of distributed sequences. It links to more detailed and particularly interesting readings when necessary.
+**(1)**: This [document](/README.md) (succinctly) presents various ways of tackling the problem of distributed sequences. It links to more detailed and particularly interesting readings when necessary.
 
-**(2)**: This file implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depends on.
+**(2)**: This [file](/sequencer.go) implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depends on.
 
-**(3)**: Package `simple_buf_seq` implements a simple, non-distributed, buffered `Sequencer` backed by a local, atomic, monotonically increasing 64bits value.  
+**(3)**: [Package `simple_buf_seq`](/simple_buf_seq) implements a simple, non-distributed, buffered `Sequencer` backed by a local, atomic, monotonically increasing 64bits value.  
 A `SimpleBufSeq` is not particularly interesting in and of itself; but it provides a performance baseline that can, and will, later be used as a point of comparison for more complex implementations.
 
-**(4)**: Package `rpc` implements a simple round-robin connection pool for GRPC connections. Not that interesting, but necessary nonetheless.
+**(4)**: [Package `rpc`](/rpc) implements a simple round-robin connection pool for GRPC connections. Not that interesting, but necessary nonetheless.
 
-**(5)**: Package `rr_seq` implements a distributed system that guarantees sequential `ID` generation by using RW quorums and read-repair conflict-resolution strategies.  
+**(5)**: [Package `rr_seq`](/rr_seq) implements a distributed system that guarantees sequential `ID` generation by using RW quorums and read-repair conflict-resolution strategies.  
 It is a direct, heavily documented, tested & benchmarked implementation of the `leaderless consistency` strategy described below.
+
+**(6)**: This [document](/rr_seq/README.md) explains how to start using the `rr_seq` package, and gives some insights about its performances.
 
 ## Common designs
 

@@ -119,7 +119,7 @@ func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
 	}
 
 	deadline := time.Second * 4 // TODO(low-prio): make this configurable
-	ctx, _ := context.WithTimeout(context.Background(), deadline)
+	ctx, canceller := context.WithTimeout(context.Background(), deadline)
 
 	idReply, err := NewRRAPIClient(conn).GRPCNextID(
 		ctx, // request will be cancelled if it lasts more than `deadline`,
@@ -127,6 +127,7 @@ func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
 		//      in any case, this results in `err != nil`
 		&NextIDRequest{Name: name, RangeSize: int64(rangeSize)},
 	)
+	canceller() // we got what we came for, stop everything downstream
 	if err != nil {
 		return 0, 0 // return empty range, this will toggle the retry machinery
 	}

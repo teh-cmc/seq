@@ -192,37 +192,56 @@ func (s *RRServer) Close() error {
 // The returned range of `ID`s is of the form [from:to).
 // An empty range such as [0,0) indicates failure.
 //
+// In case of recoverable failure, NextID will retry for as long as the
+// level-1 context's deadline has not been exceeded and/or cancelled.
+// NOTE: the `ctxL1` parameter is variable only because it is optional: only
+// the first context passed will be used.
+//
 // `name` is the name of the sequence; a `RRServer` can hold as many sequences
 // as you deem necessary.
 //
 // `rangeSize` will default to 1 in case it is < 1.
-//
-// TODO: server-side retries (note: can induce gaps)
-func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
+func (s *RRServer) NextID(
+	name string, rangeSize int64, ctxL1 ...context.Context,
+) (seq.ID, seq.ID) {
 	if rangeSize < 1 {
 		rangeSize = 1
 	}
 
-	nbQuorum := (1+s.cp.Size())/2 + 1
-	peerConns := s.cp.Conns()        // get all healthy peer-connections from the pool
-	if len(peerConns)+1 < nbQuorum { // cannot reach a quorum, might as well give up now
-		return 0, 0
-	}
+	for { // retry for as long as the client's deadline permits it
 
-	highestID := s.getHighestID(name, nbQuorum, peerConns)
-	if highestID == 0 {
-		return 0, 0
-	}
+		if len(ctxL1) > 0 {
+			select {
+			case <-ctxL1[0].Done(): // deadline is either exceeded or cancelled..
+				return 0, 0 // ..either way, we're outta here
+			default:
+			}
+		}
 
-	fromID, toID := s.setHighestID(name, highestID, rangeSize, nbQuorum, peerConns)
-	if fromID == 0 || toID == 0 { // just emphasizing the fast that this can return [0,0)
-		return 0, 0
-	}
+		nbQuorum := (1+s.cp.Size())/2 + 1
+		peerConns := s.cp.Conns()        // get all healthy peer-connections from the pool
+		if len(peerConns)+1 < nbQuorum { // cannot reach a quorum, might as well give up now
+			return 0, 0 // stop right now, it's not worth retrying
+		}
 
-	return fromID, toID
+		highestID := s.getHighestID(name, nbQuorum, peerConns, ctxL1...)
+		if highestID == 0 {
+			continue
+		}
+
+		fromID, toID := s.setHighestID(
+			name, highestID, rangeSize, nbQuorum, peerConns, ctxL1...,
+		)
+		if fromID == 0 || toID == 0 { // just emphasizing the fact that this can return [0,0)
+			continue
+		}
+
+		return fromID, toID
+	}
 }
+
 func (s *RRServer) GRPCNextID(ctx context.Context, in *NextIDRequest) (*NextIDReply, error) {
-	fromID, toID := s.NextID(in.Name, in.RangeSize)
+	fromID, toID := s.NextID(in.Name, in.RangeSize, ctx)
 	return &NextIDReply{FromId: uint64(fromID), ToId: uint64(toID)}, nil
 }
 
@@ -231,16 +250,26 @@ func (s *RRServer) GRPCNextID(ctx context.Context, in *NextIDRequest) (*NextIDRe
 // It concurrently fetches the current `ID` from `nbQuorum` nodes (including ourself),
 // then returns the highest `ID` within this set.
 //
+// NOTE: the `ctxL1` parameter is variable only because it is optional: only
+// the first context passed will be used.
+//
 // getHighestID returns `ID(0)` on failures (e.g. no quorum reached).
 func (s *RRServer) getHighestID(
 	name string, nbQuorum int, peerConns []*grpc.ClientConn,
+	ctxL1 ...context.Context,
 ) seq.ID {
+	var ctxL2 context.Context
+	var canceller context.CancelFunc
+	if len(ctxL1) > 0 { // inherit from the original client-side deadline context
+		ctxL2, canceller = context.WithCancel(ctxL1[0])
+	}
+
 	wg := &sync.WaitGroup{}
 	ids := make(chan seq.ID, len(peerConns)+1)
 	ids <- s.getID(name)
 	for _, pc := range peerConns {
 		wg.Add(1)
-		go s.getPeerID(NewRRAPIClient(pc), name, ids, wg)
+		go s.getPeerID(NewRRAPIClient(pc), name, ids, wg, ctxL2)
 	}
 
 	highestID := seq.ID(1)
@@ -263,7 +292,7 @@ func (s *RRServer) getHighestID(
 		}
 	}
 
-	// TODO: cancel the unnecessary requests
+	canceller() // we got what we came for, stop everything downstream
 	wg.Wait()
 	close(ids)
 
@@ -276,18 +305,28 @@ func (s *RRServer) getHighestID(
 // It concurrently sets the new `ID` (i.e. `highestID+rangeSize` on `nbQuorum` nodes
 // (including ourself).
 //
+// NOTE: the `ctxL1` parameter is variable only because it is optional: only
+// the first context passed will be used.
+//
 // setHighestID returns a [0,0) range on failures (e.g. no quorum reached).
 func (s *RRServer) setHighestID(
 	name string, highestID seq.ID, rangeSize int64,
 	nbQuorum int, peerConns []*grpc.ClientConn,
+	ctxL1 ...context.Context,
 ) (seq.ID, seq.ID) {
+	var ctxL2 context.Context
+	var canceller context.CancelFunc
+	if len(ctxL1) > 0 { // inherit from the original client-side deadline context
+		ctxL2, canceller = context.WithCancel(ctxL1[0])
+	}
+
 	wg := &sync.WaitGroup{}
 	newID := highestID + seq.ID(rangeSize)
 	successes := make(chan bool, len(peerConns)+1)
 	successes <- s.setID(name, newID)
 	for _, pc := range peerConns {
 		wg.Add(1)
-		go s.setPeerID(NewRRAPIClient(pc), name, newID, successes, wg)
+		go s.setPeerID(NewRRAPIClient(pc), name, newID, successes, wg, ctxL2)
 	}
 
 	var fromID, toID seq.ID
@@ -307,7 +346,7 @@ func (s *RRServer) setHighestID(
 		}
 	}
 
-	// TODO: cancel the unnecessary requests
+	canceller() // we did what we came for, stop everything downstream
 	wg.Wait()
 	close(successes)
 
@@ -337,16 +376,23 @@ func (s *RRServer) getID(name string) seq.ID {
 // `name` for the given `peer`; or `ID(1)` if no such `ID` exists.
 //
 // It pushes `ID(0)` in `ret` on failures (e.g. network error).
+//
+// NOTE: the `ctxL2` parameter is variable only because it is optional: only
+// the first context passed will be used.
 func (s *RRServer) getPeerID(
 	peer RRAPIClient,
 	name string,
 	ret chan<- seq.ID, wg *sync.WaitGroup,
+	ctxL2 ...context.Context,
 ) error {
 	defer wg.Done()
 
-	idReply, err := peer.GRPCCurID(context.TODO(), &CurIDRequest{Name: name})
-	//                             ^^^^^^^^^^^^^^
-	// TODO: handle cancellations & timeouts --^
+	var ctxL3 context.Context = context.Background()
+	if len(ctxL2) > 0 {
+		ctxL3 = ctxL2[0]
+	}
+
+	idReply, err := peer.GRPCCurID(ctxL3, &CurIDRequest{Name: name})
 	if err != nil {
 		ret <- seq.ID(0)
 		return err
@@ -361,7 +407,16 @@ func (s *RRServer) getPeerID(
 // It returns `ID(0)` on failures.
 func (s *RRServer) CurID(name string) seq.ID { return s.getID(name) }
 func (s *RRServer) GRPCCurID(ctx context.Context, in *CurIDRequest) (*CurIDReply, error) {
-	return &CurIDReply{CurId: uint64(s.CurID(in.Name))}, nil
+	idChan := make(chan seq.ID)
+	go func() { idChan <- s.CurID(in.Name) }()
+
+	var id seq.ID
+	select {
+	case <-ctx.Done():
+	case id = <-idChan:
+	}
+
+	return &CurIDReply{CurId: uint64(id)}, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -408,14 +463,16 @@ func (s *RRServer) setPeerID(
 	peer RRAPIClient,
 	name string, id seq.ID,
 	ret chan<- bool, wg *sync.WaitGroup,
+	ctxL2 ...context.Context,
 ) error {
 	defer wg.Done()
 
-	idReply, err := peer.GRPCSetID(
-		context.TODO(), &SetIDRequest{Name: name, NewId: uint64(id)},
-	//  ^^^^^^^^^^^^^^
-	//        ^--- TODO: handle cancellations & timeouts
-	)
+	var ctxL3 context.Context = context.Background()
+	if len(ctxL2) > 0 {
+		ctxL3 = ctxL2[0]
+	}
+
+	idReply, err := peer.GRPCSetID(ctxL3, &SetIDRequest{Name: name, NewId: uint64(id)})
 	if err != nil {
 		ret <- false
 		return err
@@ -429,5 +486,14 @@ func (s *RRServer) setPeerID(
 // It returns `true` on success; or `false` otherwise (e.g. curID >= newID).
 func (s *RRServer) SetID(name string, newID seq.ID) bool { return s.setID(name, newID) }
 func (s *RRServer) GRPCSetID(ctx context.Context, in *SetIDRequest) (*SetIDReply, error) {
-	return &SetIDReply{Success: s.SetID(in.Name, seq.ID(in.NewId))}, nil
+	successChan := make(chan bool)
+	go func() { successChan <- s.SetID(in.Name, seq.ID(in.NewId)) }()
+
+	var success bool
+	select {
+	case <-ctx.Done():
+	case success = <-successChan:
+	}
+
+	return &SetIDReply{Success: success}, nil
 }

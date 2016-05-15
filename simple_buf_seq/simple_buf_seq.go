@@ -3,6 +3,12 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// Package sbs implements a simple, non-distributed, buffered `Sequencer` backed
+// by a local, atomic, monotonically increasing 64bits value.
+//
+// A `SimpleBufSeq` is not particularly useful in and of itself; but it provides
+// a performance baseline that can later be used as a point of comparison
+// for more complex implementations.
 package sbs
 
 import (

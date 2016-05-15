@@ -60,7 +60,7 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 }
 
 // Stream returns a pre-buffered, range-able stream of monotonically
-// increasing IDs backed by a local atomic 64bits value, starting at `1`.
+// increasing IDs backed by a local atomic 64bits value, starting at `ID(1)`.
 func (ss SimpleBufSeq) Stream() seq.IDStream { return ss.ids }
 
 // Close closes the associated `IDStream` and stops the background buffering

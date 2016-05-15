@@ -42,6 +42,12 @@ type RRSeq struct {
 //
 // `RRSeq` will constantly try to keep this buffer as full as possible
 // using a dedicated background routine.
+
+// It is *not* `RRSeq`'s job to do gossiping, service discovery and/or
+// cluster topology management, et al.
+// Please use the appropriate tools if you need such features.
+// `RRSeq` simply assumes that the list of `addrs` you give it is exhaustive
+// and correct. No more, no less.
 //
 // `bufSize` will default to 0 in case it is < 0.
 func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {

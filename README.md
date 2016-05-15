@@ -82,14 +82,14 @@ However, it introduces a new issue: what happens if a client who's just fetched 
 
 There are 3 possible solutions to this new problem, each coming with its own set of trade-offs:  
 1. Accept the fact that your sequence as a whole might have "gaps" in it  
-   The performance boost might be worth the cost if the potential discontinuity of the sequence is not considered an issue at the application level.
+   The performance boost might be worth the cost if the potential discontinuity of the sequence is not considered an issue at the application level.  
 2. Keep track, server-side, of the current range associated with each client, and use it when a client comes back from the dead
-   Aside from the evidently added complexity of keeping track of all this information; this could cause scalability issues as the number of *uniquely identified* clients increases.
-   Also, what if a previously dead client never goes back online?
+   Aside from the evidently added complexity of keeping track of all this information; this could cause scalability issues as the number of *uniquely identified* clients increases.  
+   Also, what if a previously dead client never goes back online?  
 3. Keep track, on each client, of its current range and make sure to persist it to disk
    Aside from the evidently added [complexity inherent to client-side caching](http://martinfowler.com/bliki/TwoHardThings.html); this would create a particularly difficult situation due to the fact that the client might crash *after* having received a new range, but *before* having persisted it to disk.  
-   The only way to fix that would be to keep the server on hold until the client has notified it about the success of the disk synchronization... How will this affect performance?
-   Also, what if a client never comes back from the dead?
+   The only way to fix that would be to keep the server on hold until the client has notified it about the success of the disk synchronization... How will this affect performance?  
+   Also, what if a client never comes back from the dead?  
 
 Those new trade-offs probably have solutions of their own, which would certainly bring even more trade-offs and some more solutions to the table.  
 **TL;DR**: As with everything else in life, this is a perpetually recursive rabbit-hole of trade-offs.

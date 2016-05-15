@@ -1,6 +1,7 @@
 # Seq
 
-This repository offers a gentle overview of the possible design solutions to the common problem of generating sequential / monotonically increasing IDs in a distributed system.  
+This repository offers a gentle overview of the possible design solutions to the common problem of generating sequential / monotonically increasing IDs in a distributed system.
+
 Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between the nodes as the size of the cluster increases.
 
 ## Organization
@@ -15,13 +16,17 @@ Specifically, it focuses on maximizing performances and guaranteeing a fair dist
 └── (5) rr_seq
 ```
 
-**(1)**: This document (succinctly) presents various ways of tackling the problem of distributed sequences. It links to more detailed related readings when necessary.  
-**(2)**: This file implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depends on.  
+**(1)**: This document (succinctly) presents various ways of tackling the problem of distributed sequences. It links to more detailed and particularly interesting readings when necessary.
+
+**(2)**: This file implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depends on.
+
 **(3)**: Package `simple_buf_seq` implements a simple, non-distributed, buffered `Sequencer` backed by a local, atomic, monotonically increasing 64bits value.  
-A `SimpleBufSeq` is not particularly interesting in and of itself; but it provides a performance baseline that can, and will, later be used as a point of comparison for more complex implementations.  
-**(4)**: Package `rpc` implements a simple round-robin connection pool for GRPC connections. Not that interesting, but necessary nonetheless.  
+A `SimpleBufSeq` is not particularly interesting in and of itself; but it provides a performance baseline that can, and will, later be used as a point of comparison for more complex implementations.
+
+**(4)**: Package `rpc` implements a simple round-robin connection pool for GRPC connections. Not that interesting, but necessary nonetheless.
+
 **(5)**: Package `rr_seq` implements a distributed system that guarantees sequential `ID` generation by using RW quorums and read-repair conflict-resolution strategies.  
-It is a direct, heavily documented, tested & benchmarked implementation of the `read-repair + client-side caching` strategy described below.
+It is a direct, heavily documented, tested & benchmarked implementation of the `leaderless consistency` strategy described below.
 
 ## Common designs
 
@@ -52,11 +57,6 @@ Using these capabilities, it is quite straightforward to expose an atomic `get-a
   Due to the nature of the Leader/Followers model; a single node, the Leader, is in charge of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).  
   This also means that, if the Leader dies, the whole system is unavailable for as long as it takes for a new Leader to be elected.
 
-**Further reading**:
-
-- [thesecretlivesofdata.com](http://thesecretlivesofdata.com/raft/) offers a great visual introduction to the inner workings of the Raft protocol.
-- ["In Search of an Understandable Consensus Algorithm"](http://ramcloud.stanford.edu/raft.pdf), the official Raft paper, describes all the nitty gritty implementation details of such a system.
-
 #### Batching
 
 A simple enhancement to the *consensus protocols* approach above is to batch the fetching of IDs.  
@@ -82,27 +82,39 @@ Those new trade-offs probably have solutions of their own, which would certainly
 Note that the basic approach is just a special case of the batching approach that comes with a batch size of 1; meaning that every issues that applies to one actually applies to the other.  
 I.e. cluster-wide "gaps" are definitely possible even without batches.
 
-### The read-repair strategy
+#### Further reading
 
-Let's define:
+- [thesecretlivesofdata.com](http://thesecretlivesofdata.com/raft/) offers a great visual introduction to the inner workings of the Raft protocol.
+- ["In Search of an Understandable Consensus Algorithm"](http://ramcloud.stanford.edu/raft.pdf), the official Raft paper, describes all the nitty gritty implementation details of such a system.
 
+### Leaderless consistency
+
+A variation of the above approach consists of removing the need for a centralized Leader by using conflict-resolution strategies.  
+A common strategy is to combined RW quorums with self-repairing reads.
+
+If those concepts seem a bit too distant for you, have a look at the *Further reading* section below; those articles will make everything crystal clear.  
+In any case, I'll present a rapid explanation of the basic idea.
+
+Let's define:  
 - N: the number of nodes in the cluster
 - R: the number of nodes to read from when querying for a new ID
 - W: the number of nodes that must acknowledge the value of the next generated ID
 
 If `R + W > N`, then the read set and the write set *always* overlap, meaning that *at least one* of `R` results is the most recent ID in the cluster.  
-Using a simple read-repair conflict resolution strategy, we always keep the highest ID from the read set; thus essentially implementing a master-less quorum.
+Using a simple read-repair conflict resolution strategy, we can always keep the highest ID from the read set; thus essentially implementing a leader-less quorum.
 
-This solution offers the same exact pros & cons as the *consensus protocols* approach; except there is no uneven workload distribution anymore.  
-Indeed, every node in the cluster can now handle its fair share of the incoming traffic, since there is no elected leader.  
-Of course, network IO and lock contention within the cluster will still damage overall performance; but you really don't have a choice as long as you need a shared state between your nodes.
+This solution offers the same exact pros & cons as the basic *consensus protocols* approach; with the only difference that it completely removes the need for a centralized Leader that has to handle every single incoming query.  
+The load is now evenly balanced between the nodes.
 
-**Further reading**:
+Of course, network & disk I/O, distributed lock contention et al. are still the main restraint to overall performance; but you really don't have a choice as long as you need a shared state between your nodes... Unless you go for the [Flake model](#the-flake-model), that is.
+
+Package [`RRSeq`](/rr_seq) is a direct, heavily documented, tested & benchmarked implementation of this leaderless strategy.
+
+#### Further reading
 
 - Werner Vogels' [famous post on consistency models](http://www.allthingsdistributed.com/2008/12/eventually_consistent.html) is certainly a must read when it comes to consistency in distributed systems.
-- Riak's [replication properties](http://docs.basho.com/riak/kv/2.1.4/developing/app-guide/replication-properties/) is a great example of using {N,R,W} and conflict resolution strategies to adjust trade-offs between consistency and availability.
-
-### The read-repair strategy + client-side caching
+- Riak's [replication properties](http://docs.basho.com/riak/kv/2.1.4/developing/app-guide/replication-properties/) is a great example of using {N,R,W} knobs and conflict resolution strategies to adjust trade-offs between consistency and availability.
+- [Peter Bourgon's talk](https://www.youtube.com/watch?v=em9zLzM8O7c) about (mostly) [Soundclound's Roshi](https://github.com/soundcloud/roshi) presents a system that achieves consistency without consensus, using CRDTs and self-repairing reads and writes.
 
 ### The Flake model
 

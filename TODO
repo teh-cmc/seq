@@ -17,6 +17,7 @@ RR_SEQ
  9  polish
  9  examples
  8  generic grpc client pool
+ 9  vendoring
 
 TRAVIS
  6  yaml conf

@@ -39,6 +39,14 @@ func (m *lockedIDMap) Load(f *os.File) error {
 	m.Lock()
 	defer m.Unlock()
 
+	stat, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if stat.Size() <= 0 { // empty file, do nothing
+		return nil
+	}
+
 	loaded := make(map[string]seq.ID, len(m.ids))
 	if _, err := f.Seek(0, 0); err != nil {
 		return err

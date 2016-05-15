@@ -5,6 +5,9 @@ go:
     - 1.6.2
     - tip
 install:
-    - go get -u github.com/teh-cmc/seq/...
+    - go get -u github.com/teh-cmc/seq/... || true
 script:
-    - SEQ_SERVERS=3 SEQ_FSYNC=1 go test -v -cpu 1,4,8 -run=. -bench=none -cover github.com/teh-cmc/seq/...
+    - go test -v -cpu 1,4,8 -run=. -bench=none -cover github.com/teh-cmc/seq
+    - go test -v -cpu 1,4,8 -run=. -bench=none -cover github.com/teh-cmc/seq/simple_buf_seq
+    - SEQ_SERVERS=3 SEQ_FSYNC=1 go test -v -cpu 1,4,8 -run=. -bench=none -cover github.com/teh-cmc/seq/rr_seq
+    - SEQ_SERVERS=5 SEQ_FSYNC=0 go test -v -cpu 1,4,8 -run=. -bench=none -cover github.com/teh-cmc/seq/rr_seq

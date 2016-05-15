@@ -14,6 +14,8 @@ RR_SEQ
  5  implement AddPeer
  3  atomic query counter
  9  mayhem mode testing
+ 9  polish
+ 9  examples
 
 TRAVIS
  6  yaml conf

@@ -1,9 +1,15 @@
 package rrs
 
 import (
+	"io/ioutil"
 	"os"
 	"strconv"
 )
+
+// ENV_VARS:
+//
+// SEQ_SERVERS=<int> -> specifies the number N of nodes in the cluster (default: 5)
+// SEQ_FSYNC={0,1}   -> enables or disables disk persistence (default: disabled)
 
 // -----------------------------------------------------------------------------
 
@@ -11,17 +17,30 @@ var testingRRServers []*RRServer
 var testingRRServerAddrs []string
 
 func init() {
-	// use SEQ_SERVERS envar to dynamically specify number of test servers
 	var nbServers int64 = 5
 	if n, err := strconv.ParseInt(os.Getenv("SEQ_SERVERS"), 10, 64); err == nil {
 		nbServers = n
+	}
+
+	var path string
+	fsync := false
+	if os.Getenv("SEQ_FSYNC") == "1" {
+		fsync = true
+	}
+	if fsync {
+		f, err := ioutil.TempFile("", "seq_tests")
+		if err != nil {
+			panic(err)
+		}
+		path = f.Name()
+		_ = f.Close()
 	}
 
 	testingRRServers = make([]*RRServer, nbServers)
 
 	var err error
 	for i := int64(0); i < nbServers; i++ {
-		testingRRServers[i], err = NewRRServer(":0", "") // warning: 0 peer
+		testingRRServers[i], err = NewRRServer(":0", path) // warning "0 peer" expected
 		if err != nil {
 			panic(err)
 		}

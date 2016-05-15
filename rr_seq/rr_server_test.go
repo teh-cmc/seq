@@ -27,6 +27,9 @@ func TestRRServer_LockedIDMap_DumpAndLoad(t *testing.T) {
 	}
 	m2 := &lockedIDMap{RWMutex: &sync.RWMutex{}, ids: make(map[string]*lockedID)}
 
+	ensure.Nil(t, m1.Load(f)) // empty file should be ignored
+	ensure.Nil(t, m2.Load(f)) // empty file should be ignored
+
 	ensure.Nil(t, m1.Dump(f))
 	ensure.Nil(t, m2.Load(f))
 

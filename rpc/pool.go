@@ -72,6 +72,22 @@ func (p *Pool) Size() int {
 	return len(p.conns)
 }
 
+// Conns returns all the available *healthy* connections found in the pool.
+func (p *Pool) Conns() []*grpc.ClientConn {
+	p.RLock()
+	defer p.RUnlock()
+
+	conns := make([]*grpc.ClientConn, 0, len(p.conns))
+	for _, conn := range p.conns {
+		state, err := conn.State()
+		if err != nil || state != grpc.Ready {
+			continue
+		}
+		conns = append(conns, conn)
+	}
+	return conns
+}
+
 // ConnRoundRobin returns the next healthy connection from the pool, using a
 // simple round-robin algorithm.
 //
@@ -82,7 +98,7 @@ func (p *Pool) ConnRoundRobin() (conn *grpc.ClientConn) {
 	start := p.current
 	state := grpc.Idle
 	for conn == nil || state != grpc.Ready {
-		// find next connection in the pool
+		// get next connection from the pool
 		if p.current >= len(p.conns) {
 			p.current = 0
 		}
@@ -90,7 +106,7 @@ func (p *Pool) ConnRoundRobin() (conn *grpc.ClientConn) {
 
 		// fetch its state
 		state, err = conn.State()
-		if err != nil { // cannot fetch state, declare as not ready
+		if err != nil { // cannot fetch state, consider as not ready
 			state = grpc.Idle
 		}
 

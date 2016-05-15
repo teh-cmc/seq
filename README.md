@@ -89,7 +89,7 @@ However, it introduces a new issue: what happens if a client who's just fetched 
 There are 3 possible solutions to this new problem, each coming with its own set of trade-offs:  
 - Accept the fact that your sequence as a whole might have "gaps" in it  
   The performance boost might be worth the cost if the potential discontinuity of the sequence is not considered an issue at the application level.  
-- Keep track, server-side, of the current range associated with each client, and use it when a client comes back from the dead
+- Keep track, server-side, of the current range associated with each client, and use it when a client comes back from the dead  
   Aside from the evidently added complexity of keeping track of all this information; this could cause scalability issues as the number of *uniquely identified* clients increases.  
   Also, what if a previously dead client never goes back online?  
 - Keep track, on each client, of its current range and make sure to persist it to disk

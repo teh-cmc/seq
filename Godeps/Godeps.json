@@ -1,0 +1,49 @@
+{
+	"ImportPath": "github.com/teh-cmc/seq",
+	"GoVersion": "go1.6",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+		},
+		{
+			"ImportPath": "github.com/facebookgo/ensure",
+			"Rev": "b4ab57deab51ee655ae4bd85281f0715a068016d"
+		},
+		{
+			"ImportPath": "github.com/facebookgo/stack",
+			"Rev": "751773369052141c013c6e827a71e8f35c07879c"
+		},
+		{
+			"ImportPath": "github.com/facebookgo/subset",
+			"Rev": "8dac2c3c48703541e481feddf22975953d4ff842"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "7cc19b78d562895b13596ddce7aafb59dd789318"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "96dbb961a39ddccf16860cdd355bfa639c497f23"
+		},
+		{
+			"ImportPath": "golang.org/x/net/http2",
+			"Rev": "96dbb961a39ddccf16860cdd355bfa639c497f23"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/timeseries",
+			"Rev": "96dbb961a39ddccf16860cdd355bfa639c497f23"
+		},
+		{
+			"ImportPath": "golang.org/x/net/trace",
+			"Rev": "96dbb961a39ddccf16860cdd355bfa639c497f23"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc",
+			"Rev": "4c4ed377c72e199edd16a87011f13a56fd519119"
+		}
+	]
+}

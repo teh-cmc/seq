@@ -1,8 +1,10 @@
 package rrs
 
 import (
+	"encoding/gob"
 	"log"
 	"net"
+	"os"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -31,6 +33,42 @@ type lockedIDMap struct {
 	*sync.RWMutex
 	ids map[string]*lockedID
 }
+
+// Load atomically loads the content of the map from the specified file `f`.
+func (m *lockedIDMap) Load(f *os.File) error {
+	m.Lock()
+	defer m.Unlock()
+
+	loaded := make(map[string]seq.ID, len(m.ids))
+	if _, err := f.Seek(0, 0); err != nil {
+		return err
+	}
+	if err := gob.NewDecoder(f).Decode(&loaded); err != nil {
+		return err
+	}
+	for name, id := range loaded {
+		m.ids[name] = &lockedID{RWMutex: &sync.RWMutex{}, id: id}
+	}
+
+	return nil
+}
+
+// Dump atomically dumps the content of the map to the specified file `f`.
+func (m *lockedIDMap) Dump(f *os.File) error {
+	m.Lock()
+	defer m.Unlock()
+
+	dumped := make(map[string]seq.ID, len(m.ids))
+	for name, lid := range m.ids {
+		dumped[name] = lid.id
+	}
+	if err := f.Truncate(0); err != nil {
+		return err
+	}
+	return gob.NewEncoder(f).Encode(dumped)
+}
+
+// -----------------------------------------------------------------------------
 
 // RRServer implements a single node of an RRCluster: a distributed system
 // that guarantees sequential `ID` generation by using RW quorums and

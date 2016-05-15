@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/teh-cmc/seq"
+	"github.com/teh-cmc/seq/rpc"
 )
 
 // -----------------------------------------------------------------------------
@@ -17,7 +18,7 @@ import (
 // You can find more information about the ideas behind such a system in the
 // `README.md` file at the root of this repository.
 type RRSeq struct {
-	cp  *rrAPIPool
+	cp  *rpc.Pool
 	ids chan seq.ID
 
 	stop chan struct{}
@@ -35,7 +36,7 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 		bufSize = 0
 	}
 
-	cp, err := newRRAPIPool(addrs...)
+	cp, err := rpc.NewPool(addrs...) // blocks until all connections are established
 	if err != nil {
 		return nil, err
 	}
@@ -90,14 +91,16 @@ func NewRRSeq(name string, bufSize int, addrs ...string) (*RRSeq, error) {
 // getNextRange fetches the next available range of `ID`s from the cluster
 // of `RRServer`s.
 func (ss RRSeq) getNextRange(name string, rangeSize int) (seq.ID, seq.ID) {
-	idReply, err := ss.cp.ClientRoundRobin().GRPCNextID(
+	conn := ss.cp.ConnRoundRobin()
+	if conn == nil { // no healthy connection available
+		return 0, 0 // empty range, this will toggle the retry machinery
+	}
+	idReply, err := NewRRAPIClient(conn).GRPCNextID(
 		context.TODO(), // TODO: handle timeouts
 		&NextIDRequest{Name: name, RangeSize: int64(rangeSize)},
 	)
 	if err != nil {
-		// NOTE: if things go wrong, an empty `ID` range is returned
-		// this will be retried on the next iteration, using the next client (round-robin)
-		return 0, 0
+		return 0, 0 // empty range, this will toggle the retry machinery
 	}
 	return seq.ID(idReply.FromId), seq.ID(idReply.ToId)
 }
@@ -113,5 +116,5 @@ func (ss *RRSeq) Close() error {
 	close(ss.stop)       // kill background routine
 	ss.wg.Wait()         // wait for it to be fully stopped
 	close(ss.ids)        // close `ID` stream
-	return ss.cp.Close() // close gRPC clients
+	return ss.cp.Close() // close gRPC connections
 }

@@ -226,7 +226,7 @@ func testRRSeq_ConcurrentClients32_Distributed(bufSize int, t *testing.T) {
 			lastID := seq.ID(0)
 			j := 0
 			for id := range s.Stream() {
-				if j >= len(allIDs) {
+				if j >= len(allIDs) { // SO WRONG
 					break
 				}
 				ensure.True(t, id > lastID)

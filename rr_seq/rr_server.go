@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/teh-cmc/seq"
+	"github.com/teh-cmc/seq/rpc"
 
 	"golang.org/x/net/context"
 )
@@ -41,7 +42,7 @@ type RRServer struct {
 	*grpc.Server
 	addr net.Addr
 
-	cp  *rrAPIPool
+	cp  *rpc.Pool
 	ids *lockedIDMap
 }
 
@@ -78,9 +79,7 @@ func NewRRServer(addr string, peerAddrs ...string) (*RRServer, error) {
 		log.Printf("warning: uneven number of nodes in the cluster\n")
 	}
 
-	cp, err := newRRAPIPool(peerAddrs...)
-	//         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-	// will wait indefinitely until every specified peers are up & running
+	cp, err := rpc.NewPool(peerAddrs...) // blocks until all connections are established
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +117,17 @@ func (s *RRServer) Close() error {
 //
 // `rangeSize` will default to 1 in case it is < 1.
 //
-// TODO: retries (note: can induce gaps)
+// TODO: server-side retries (note: can induce gaps)
 func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	if rangeSize < 1 {
 		rangeSize = 1
 	}
 
 	nbPeers, nbQuorum := 1+s.cp.Size(), (1+s.cp.Size())/2+1
+	peerConns := s.cp.Conns()
+	if len(peerConns)+1 < nbQuorum { // cannot reach a quorum, might as well give up now
+		return 0, 0
+	}
 
 	// STEP I:
 	// Fetch the current `ID` from `quorum` nodes (including ourself)
@@ -133,9 +136,9 @@ func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	getWG := &sync.WaitGroup{}
 	ids := make(chan seq.ID, nbPeers)
 	ids <- s.getID(name)
-	for i := 1; i < nbPeers; i++ {
+	for _, pc := range peerConns {
 		getWG.Add(1)
-		go s.getPeerID(s.cp.ClientRoundRobin(), name, ids, getWG)
+		go s.getPeerID(NewRRAPIClient(pc), name, ids, getWG)
 	}
 
 	highestID := seq.ID(1)
@@ -168,9 +171,9 @@ func (s *RRServer) NextID(name string, rangeSize int64) (seq.ID, seq.ID) {
 	newID := highestID + seq.ID(rangeSize)
 	successes := make(chan bool, nbPeers)
 	successes <- s.setID(name, newID)
-	for i := 1; i < nbPeers; i++ {
+	for _, pc := range peerConns {
 		setWG.Add(1)
-		go s.setPeerID(s.cp.ClientRoundRobin(), name, newID, successes, setWG)
+		go s.setPeerID(NewRRAPIClient(pc), name, newID, successes, setWG)
 	}
 
 	var fromID, toID seq.ID

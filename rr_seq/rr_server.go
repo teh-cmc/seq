@@ -105,6 +105,7 @@ type RRServer struct {
 // Please use the appropriate tools if you need such features.
 // `RRServer` simply assumes that the list of peers you give it is exhaustive
 // and correct. No more, no less.
+// NOTE: RRServer currently doesn't support adding or removing peers while running.
 //
 // Set `addr` to "<host>:0" if you want to be assigned a port automatically,
 // you can then retrieve the address of the server with `RRServer.Addr()`.
@@ -121,8 +122,6 @@ type RRServer struct {
 // NOTE: you should always have an odd number of at least 3 nodes in your
 // cluster to guarantee the availability of the system in case of a
 // "half & (almost) half" netsplit situation.
-//
-// TODO(very-low-prio): AddPeer support.
 func NewRRServer(addr string, path string, peerAddrs ...string) (*RRServer, error) {
 	serv := &RRServer{
 		ids: &lockedIDMap{

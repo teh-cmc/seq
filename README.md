@@ -4,6 +4,21 @@ This repository offers a gentle overview of the possible design solutions to the
 
 Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between the nodes as the size of the cluster increases.
 
+**Table of contents**
+
+- [Seq](#seq)
+  - [Organization](#organization)
+  - [Common designs](#common-designs)
+    - [Consensus protocols (Leader/Followers)](#consensus-protocols-leaderfollowers)
+      - [Batching](#batching)
+      - [Further reading](#further-reading)
+    - [Leaderless consistency](#leaderless-consistency)
+      - [Further reading](#further-reading-1)
+    - [The Flake model](#the-flake-model)
+      - [How?](#how)
+      - [Trade-offs](#trade-offs)
+      - [Further reading](#further-reading-2)
+
 ## Organization
 
 ```

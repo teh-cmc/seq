@@ -1,7 +1,26 @@
 # Seq
 
-This document gives a gentle overview of the possible design solutions to the common problem of generating sequential / monotonically increasing IDs in a distributed system.  
-Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between nodes, as the size of the cluster increases.
+This repository offers a gentle overview of the possible design solutions to the common problem of generating sequential / monotonically increasing IDs in a distributed system.  
+Specifically, it focuses on maximizing performances and guaranteeing a fair distribution of the workload between nodes as the size of the cluster increases.
+
+## Organization
+
+```
+.
+├── (1) README.md
+├── (2) sequencer.go
+├── (3) simple_buf_seq
+├── (4) rpc
+└── (5) rr_seq
+```
+
+**(1)**: This document (succinctly) presents various ways of tackling the problem of distributed sequences. It links to more detailed related readings when necessary.  
+**(2)**: This file implements the `ID` type as well as the `Sequencer` interface, both of which the following packages depends on.  
+**(3)**: Package `simple_buf_seq` implements a simple, non-distributed, buffered `Sequencer` backed by a local, atomic, monotonically increasing 64bits value.  
+A `SimpleBufSeq` is not particularly interesting in and of itself; but it provides a performance baseline that can, and will, later be used as a point of comparison for more complex implementations.  
+**(4)**: Package `rpc` implements a simple round-robin connection pool for GRPC connections. Not that interesting, but necessary nonetheless.  
+**(5)**: Package `rr_seq` implements a distributed system that guarantees sequential `ID` generation by using RW quorums and read-repair conflict-resolution strategies.  
+It is a direct, heavily documented, tested & benchmarked implementation of the `read-repair + client-side caching` strategy described below.
 
 ## Possible designs
 
@@ -68,3 +87,5 @@ Of course, network IO and lock contention within the cluster will still damage o
 ### The read-repair strategy + client-side caching
 
 ### The Flake model
+
+Although it does not provide sequential IDs per se; the flake-ish way of doing things is such an elegant and performant solution that I *had* to mention it here.

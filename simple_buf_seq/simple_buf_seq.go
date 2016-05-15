@@ -8,8 +8,8 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// SimpleBufSeq implements a simple buffered `Sequencer` backed by a local,
-// atomic, monotonically increasing 64bits value.
+// SimpleBufSeq implements a simple, non-distributed, buffered `Sequencer` backed
+// by a local, atomic, monotonically increasing 64bits value.
 //
 // A `SimpleBufSeq` is not particularly useful in and of itself; but it provides
 // a performance baseline that can later be used as a point of comparison

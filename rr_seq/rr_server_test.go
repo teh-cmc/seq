@@ -33,4 +33,26 @@ func TestRRServer_LockedIDMap_DumpAndLoad(t *testing.T) {
 	for name, lid := range m1.ids {
 		ensure.DeepEqual(t, lid.id, m2.ids[name].id)
 	}
+
+	m2.ids["B"].id = seq.ID(666)
+
+	ensure.Nil(t, m2.Dump(f))
+	ensure.Nil(t, m1.Load(f))
+
+	ensure.DeepEqual(t, m1.ids["B"].id, seq.ID(666))
+	for name, lid := range m2.ids {
+		ensure.DeepEqual(t, lid.id, m1.ids[name].id)
+	}
+
+	_, err = f.WriteString("dumping some random garbage")
+	ensure.Nil(t, err)
+	ensure.Nil(t, m1.Dump(f))
+	ensure.Nil(t, m1.Dump(f))
+	ensure.Nil(t, m1.Dump(f))
+	ensure.Nil(t, m1.Dump(f))
+	ensure.Nil(t, m1.Load(f))
+
+	for name, lid := range m2.ids {
+		ensure.DeepEqual(t, lid.id, m1.ids[name].id)
+	}
 }

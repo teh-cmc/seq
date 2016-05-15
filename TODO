@@ -1,11 +1,3 @@
-README
- 9  the read-repair strategy -> fsync-ing
- 9  the read-repair strategy -> retries = gaps (single commit)
- 9  the read-repair strategy + client-side range caching
- 9  the flake model
- 9  document repo's organization
- 9  polish
-
 RR_SEQ
  9  implement timeouts & cancellations
  6  implement server-side retries

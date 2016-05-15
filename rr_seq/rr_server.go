@@ -88,7 +88,7 @@ func (m *lockedIDMap) Dump(f *os.File) error {
 // -----------------------------------------------------------------------------
 
 // RRServer implements a single node of an RRCluster: a distributed system
-// that guarantees sequential `ID` generation by using RW quorums and
+// that guarantees the generation of sequential `ID`s by using RW quorums and
 // read-repair conflict-resolution strategies.
 //
 // You can find more information about the ideas behind such a system in the

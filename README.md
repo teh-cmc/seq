@@ -44,7 +44,7 @@ A `SimpleBufSeq` is not particularly interesting in and of itself; but it provid
 
 **(4)**: [Package `rpc`](/rpc) implements a simple round-robin connection pool for GRPC connections. Not that interesting, but necessary nonetheless.
 
-**(5)**: [Package `rr_seq`](/rr_seq) implements a distributed system that guarantees sequential `ID` generation by using RW quorums and read-repair conflict-resolution strategies.  
+**(5)**: [Package `rr_seq`](/rr_seq) implements a distributed system that guarantees the generation of sequential `ID`s by using RW quorums and read-repair conflict-resolution strategies.  
 It is a direct, heavily documented, tested & benchmarked implementation of the `leaderless consistency` strategy described below.
 
 **(6)**: This [document](/rr_seq/README.md) explains how to start using the `rr_seq` package, and gives some insights about its performances.

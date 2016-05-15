@@ -65,6 +65,9 @@ func (m *lockedIDMap) Dump(f *os.File) error {
 	if err := f.Truncate(0); err != nil {
 		return err
 	}
+	if _, err := f.Seek(0, 0); err != nil {
+		return err
+	}
 	return gob.NewEncoder(f).Encode(dumped)
 }
 

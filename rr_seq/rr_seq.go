@@ -3,6 +3,12 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// Package rrs implements a buffered `Sequencer` backed by a cluster of
+// `RRServer`s: a distributed system that guarantees sequential `ID` generation
+// by using RW quorums and read-repair conflict resolution strategies.
+//
+// You can find more information about the ideas behind such a system in the
+// `README.md` file at the root of this repository.
 package rrs
 
 import (

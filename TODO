@@ -1,6 +1,4 @@
 RR_SEQ
- 9  implement timeouts & cancellations
- 6  implement server-side retries
  5  implement AddPeer
  3  atomic query counter
  9  mayhem mode testing

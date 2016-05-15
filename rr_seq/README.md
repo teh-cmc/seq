@@ -24,7 +24,7 @@ First thing first, you should make sure that all the tests pass without any issu
 ```
 go test -cpu 1,4,8 -run=. -bench=none -cover -v
 ```
-(!) You should expect some innocuous `grpc` warnings when executing these commands.
+:warning: You should expect some innocuous `grpc` warnings when executing these commands.
 
 **II. Starting some servers**
 
@@ -53,12 +53,22 @@ func usage() string { return "./server addr path peer1_addr [peerN_addr...]" }
 
 func main() {
 	flag.Parse()
-	if flag.NArg() < 2 {
+	if flag.NArg() < 3 {
 		fmt.Println("Usage:", usage())
 		os.Exit(1)
 	}
 
-	s, err = rrs.NewRRServer(flag.Arg(0), flag.Arg(1), flag.Args()[2:]...)
+	f, err := os.Create(flag.Arg(1))
+	if err != nil {
+		log.Fatal(err)
+	}
+	_ = f.Close()
+
+	s, err := rrs.NewRRServer(flag.Arg(0), flag.Arg(1), flag.Args()[2:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("ready")
 
 	c := make(chan os.Signal, 1)
@@ -82,7 +92,7 @@ go run example/server/main.go :19001 /tmp/serv1_persist :19002 :19003
 go run example/server/main.go :19002 /tmp/serv2_persist :19001 :19003
 go run example/server/main.go :19003 /tmp/serv3_persist :19001 :19002
 ```
-(!) You should expect some innocuous `grpc` warnings when executing these commands.
+:warning: You should expect some innocuous `grpc` warnings when executing these commands.
 
 That's it, you're now running a cluster composed 3 `RRServer`s.
 
@@ -168,7 +178,7 @@ This first client will have a buffer size of `1000` and will try to fetch a new 
 go run example/client/main.go myseq 1000 10 :19001 :19002 :19003
 go run example/client/main.go myseq 1250 5  :19001 :19002 :19003
 ```
-(!) You should expect some innocuous `grpc` warnings when executing these commands.
+:warning: You should expect some innocuous `grpc` warnings when executing these commands.
 
 That's it, you now have 2 `RRSeq`s fetching sequential IDs from your cluster of 3 `RRServer`s.
 
@@ -181,6 +191,126 @@ Now that you have a running cluster with a bunch of clients connected to it, you
 - `rm` some or all of the persistent logs and see what happens
 - any combination of the above
 
+:warning: Due to `grpc`'s exponential backoff algorithm used for reconnections, it can take quite some time for a `RRSeq` to reconnect to a `RRServer`.
+
 TL;DR: wreak havoc.
 
 ## Performance
+
+### Running the benchmarks
+
+```
+go test -cpu 1,8,32 -run=none -bench=. -cover -v
+```
+:warning: You should expect some innocuous `grpc` warnings when executing these commands.
+
+Here are the results using a `DELL XPS 15-9530 (i7-4712HQ@2.30GHz)`:
+
+```
+BenchmarkRRSeq_BufSize0_SingleClient                       	    1000	   1026260 ns/op
+BenchmarkRRSeq_BufSize0_SingleClient-8                     	    3000	    500635 ns/op
+BenchmarkRRSeq_BufSize0_SingleClient-32                    	    3000	    512832 ns/op
+BenchmarkRRSeq_BufSize1_SingleClient                       	    1000	   1062353 ns/op
+BenchmarkRRSeq_BufSize1_SingleClient-8                     	    3000	    514863 ns/op
+BenchmarkRRSeq_BufSize1_SingleClient-32                    	    3000	    518578 ns/op
+BenchmarkRRSeq_BufSize2_SingleClient                       	    2000	    551448 ns/op
+BenchmarkRRSeq_BufSize2_SingleClient-8                     	    5000	    260458 ns/op
+BenchmarkRRSeq_BufSize2_SingleClient-32                    	    5000	    263286 ns/op
+BenchmarkRRSeq_BufSize1024_SingleClient                    	 1000000	      1261 ns/op
+BenchmarkRRSeq_BufSize1024_SingleClient-8                  	 2000000	       714 ns/op
+BenchmarkRRSeq_BufSize1024_SingleClient-32                 	 2000000	       707 ns/op
+BenchmarkRRSeq_BufSize0_ConcurrentClients_Local            	    1000	   1121957 ns/op
+BenchmarkRRSeq_BufSize0_ConcurrentClients_Local-8          	    3000	    530608 ns/op
+BenchmarkRRSeq_BufSize0_ConcurrentClients_Local-32         	    3000	    547488 ns/op
+BenchmarkRRSeq_BufSize1_ConcurrentClients_Local            	    2000	   1146762 ns/op
+BenchmarkRRSeq_BufSize1_ConcurrentClients_Local-8          	    3000	    538000 ns/op
+BenchmarkRRSeq_BufSize1_ConcurrentClients_Local-32         	    3000	    543174 ns/op
+BenchmarkRRSeq_BufSize2_ConcurrentClients_Local            	    2000	    572742 ns/op
+BenchmarkRRSeq_BufSize2_ConcurrentClients_Local-8          	    5000	    271561 ns/op
+BenchmarkRRSeq_BufSize2_ConcurrentClients_Local-32         	    5000	    273733 ns/op
+BenchmarkRRSeq_BufSize1024_ConcurrentClients_Local         	 1000000	      1315 ns/op
+BenchmarkRRSeq_BufSize1024_ConcurrentClients_Local-8       	 2000000	       879 ns/op
+BenchmarkRRSeq_BufSize1024_ConcurrentClients_Local-32      	 1000000	      1048 ns/op
+BenchmarkRRSeq_BufSize0_ConcurrentClients_Distributed      	       1	1155801513 ns/op
+BenchmarkRRSeq_BufSize0_ConcurrentClients_Distributed-8    	    2000	    907526 ns/op
+BenchmarkRRSeq_BufSize0_ConcurrentClients_Distributed-32   	    2000	    955798 ns/op
+BenchmarkRRSeq_BufSize1_ConcurrentClients_Distributed      	       1	1543643181 ns/op
+BenchmarkRRSeq_BufSize1_ConcurrentClients_Distributed-8    	    1000	   1006642 ns/op
+BenchmarkRRSeq_BufSize1_ConcurrentClients_Distributed-32   	    1000	   1042091 ns/op
+BenchmarkRRSeq_BufSize2_ConcurrentClients_Distributed      	       1	1622989431 ns/op
+BenchmarkRRSeq_BufSize2_ConcurrentClients_Distributed-8    	    3000	    507277 ns/op
+BenchmarkRRSeq_BufSize2_ConcurrentClients_Distributed-32   	    2000	    534845 ns/op
+BenchmarkRRSeq_BufSize1024_ConcurrentClients_Distributed   	       1	1129368563 ns/op
+BenchmarkRRSeq_BufSize1024_ConcurrentClients_Distributed-8 	 2000000	       939 ns/op
+BenchmarkRRSeq_BufSize1024_ConcurrentClients_Distributed-32	 1000000	      1065 ns/op
+```
+
+And the same results for `SimpleBufSeq` (still using a `DELL XPS 15-9530 (i7-4712HQ@2.30GHz)`):
+
+```
+BenchmarkSimpleBufSeq_BufSize0_SingleClient           	 3000000	       426 ns/op
+BenchmarkSimpleBufSeq_BufSize0_SingleClient-8         	 3000000	       449 ns/op
+BenchmarkSimpleBufSeq_BufSize0_SingleClient-32        	 3000000	       449 ns/op
+BenchmarkSimpleBufSeq_BufSize1_SingleClient           	 5000000	       347 ns/op
+BenchmarkSimpleBufSeq_BufSize1_SingleClient-8         	 5000000	       374 ns/op
+BenchmarkSimpleBufSeq_BufSize1_SingleClient-32        	 5000000	       376 ns/op
+BenchmarkSimpleBufSeq_BufSize1024_SingleClient        	10000000	       188 ns/op
+BenchmarkSimpleBufSeq_BufSize1024_SingleClient-8      	10000000	       222 ns/op
+BenchmarkSimpleBufSeq_BufSize1024_SingleClient-32     	10000000	       220 ns/op
+BenchmarkSimpleBufSeq_BufSize0_ConcurrentClients      	 3000000	       421 ns/op
+BenchmarkSimpleBufSeq_BufSize0_ConcurrentClients-8    	 3000000	       544 ns/op
+BenchmarkSimpleBufSeq_BufSize0_ConcurrentClients-32   	 2000000	       654 ns/op
+BenchmarkSimpleBufSeq_BufSize1_ConcurrentClients      	 5000000	       344 ns/op
+BenchmarkSimpleBufSeq_BufSize1_ConcurrentClients-8    	 3000000	       510 ns/op
+BenchmarkSimpleBufSeq_BufSize1_ConcurrentClients-32   	 2000000	       635 ns/op
+BenchmarkSimpleBufSeq_BufSize2_ConcurrentClients      	 5000000	       315 ns/op
+BenchmarkSimpleBufSeq_BufSize2_ConcurrentClients-8    	 3000000	       490 ns/op
+BenchmarkSimpleBufSeq_BufSize2_ConcurrentClients-32   	 2000000	       630 ns/op
+BenchmarkSimpleBufSeq_BufSize1024_ConcurrentClients   	10000000	       189 ns/op
+BenchmarkSimpleBufSeq_BufSize1024_ConcurrentClients-8 	 5000000	       370 ns/op
+BenchmarkSimpleBufSeq_BufSize1024_ConcurrentClients-32	 3000000	       597 ns/op
+```
+
+### Comparing performance with `SimpleBufSeq`
+
+In order compare the performance of `SimpleBufSeq` and `RRSeq/RRServer`; we'll need to focus of 3 situations:
+
+- 32 concurrent clients trying to fetch IDs from a `Sequencer` with a buffering size of `0`
+
+  `SimpleBufSeq`:
+  ```
+  BenchmarkSimpleBufSeq_BufSize0_ConcurrentClients-32   	    2000000	       654 ns/op
+  ```
+  `RRSeq`:
+  ```
+  BenchmarkRRSeq_BufSize0_ConcurrentClients_Distributed-32   	   2000	    955798 ns/op
+  ```
+
+- 32 concurrent clients trying to fetch IDs from a `Sequencer` with a buffering size of `2`
+
+  `SimpleBufSeq`:
+  ```
+  BenchmarkSimpleBufSeq_BufSize2_ConcurrentClients-32   	    2000000	       630 ns/op
+  ```
+  `RRSeq`:
+  ```
+  BenchmarkRRSeq_BufSize2_ConcurrentClients_Distributed-32   	   2000	    534845 ns/op
+  ```
+
+- 32 concurrent clients trying to fetch IDs from a `Sequencer` with a buffering size of `1024`
+
+  `SimpleBufSeq`:
+  ```
+  BenchmarkSimpleBufSeq_BufSize1024_ConcurrentClients-32	    3000000	       597 ns/op
+  ```
+  `RRSeq`:
+  ```
+  BenchmarkRRSeq_BufSize1024_ConcurrentClients_Distributed-32   1000000	      1065 ns/op
+  ```
+
+The results are pretty much self explanatory.
+
+With a small buffer size, `RRSeq` is basically DOS-ing itself out of existence.  
+Once the buffer size starts to increase, the disk & network contention decreases proportionally:  
+- Starting with an empty buffer, `RRSeq` is 3 orders of magnitude slower than `SimpleBufSeq`, i.e. barely usable;
+- Once it reaches a 1024-wide buffer, `RRSeq` becomes less than 2 times slower than a `SimpleBufSeq`

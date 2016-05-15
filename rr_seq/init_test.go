@@ -22,25 +22,31 @@ func init() {
 		nbServers = n
 	}
 
-	var path string
+	paths := make([]string, nbServers)
 	fsync := false
 	if os.Getenv("SEQ_FSYNC") == "1" {
 		fsync = true
 	}
 	if fsync {
-		f, err := ioutil.TempFile("", "seq_tests")
-		if err != nil {
-			panic(err)
+		for i := range paths {
+			f, err := ioutil.TempFile("", "seq_tests")
+			if err != nil {
+				panic(err)
+			}
+			paths[i] = f.Name()
+			_ = f.Close()
 		}
-		path = f.Name()
-		_ = f.Close()
 	}
 
 	testingRRServers = make([]*RRServer, nbServers)
 
 	var err error
+	var ppath string
 	for i := int64(0); i < nbServers; i++ {
-		testingRRServers[i], err = NewRRServer(":0", path) // warning "0 peer" expected
+		if len(paths) > 0 {
+			ppath = paths[i]
+		}
+		testingRRServers[i], err = NewRRServer(":0", ppath) // warning "0 peer" expected
 		if err != nil {
 			panic(err)
 		}

@@ -11,6 +11,11 @@ import (
 	"github.com/teh-cmc/seq"
 )
 
+// ENV_VARS:
+//
+// SEQ_SERVERS=<int> -> specifies the number N of nodes in the cluster (default: 5)
+// SEQ_FSYNC={0,1}   -> enables or disables disk persistence (default: disabled)
+
 // TESTS: `go test -race -cpu 1,4,8 -run=. -bench=none -cover`
 // BENCHMARKS: `go test -cpu 1,8,32 -run=none -bench=. -cover`
 

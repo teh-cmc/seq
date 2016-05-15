@@ -11,7 +11,7 @@ import (
 )
 
 // TESTS: `go test -race -cpu 1,4,8 -run=. -bench=none -cover`
-// BENCHMARKS: `go test -race -cpu 1,8,32 -run=none -bench=. -cover`
+// BENCHMARKS: `go test -cpu 1,8,32 -run=none -bench=. -cover`
 
 // -----------------------------------------------------------------------------
 

@@ -10,9 +10,10 @@ import (
 	"github.com/teh-cmc/seq"
 )
 
-// -----------------------------------------------------------------------------
+// TESTS: `go test -race -cpu 1,4,8 -run=. -bench=none -cover`
+// BENCHMARKS: `go test -race -cpu 1,8,32 -run=none -bench=. -cover`
 
-// NOTE: run these tests with `go test -race -cpu 1,4,8`
+// -----------------------------------------------------------------------------
 
 func TestSimpleBufSeq_New_BufSize(t *testing.T) {
 	ensure.DeepEqual(t, cap(NewSimpleBufSeq(-42).ids), 0)
@@ -106,21 +107,40 @@ func testSimpleBufSeq_ConcurrentClients256(bufSize int, t *testing.T) {
 	s := NewSimpleBufSeq(bufSize)
 
 	go func() {
-		<-time.After(time.Millisecond * 250)
+		<-time.After(time.Millisecond * 500)
 		_ = s.Close()
 	}()
+
+	ids := make(seq.IDSlice, 0, 256*(bufSize+1)*10)
+	idsLock := &sync.Mutex{}
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < 256; i++ {
 		wg.Add(1)
 		go func() {
+			allIDs := make(seq.IDSlice, 0, (bufSize+1)*10)
+			lastID := seq.ID(0)
 			for id := range s.Stream() {
-				_ = id
+				ensure.True(t, id > lastID)
+				lastID = id
+				allIDs = append(allIDs, id)
 			}
+
+			idsLock.Lock()
+			ids = append(ids, allIDs...)
+			idsLock.Unlock()
+
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+
+	// check that the entire set of `ID`s returned is sequential and
+	// monotonically increasing as a whole.
+	ids = ids.Sort()
+	for i := 0; i < len(ids)-1; i++ {
+		ensure.True(t, ids[i]+1 == ids[i+1])
+	}
 }
 
 func TestSimpleBufSeq_BufSize0_ConcurrentClients256(t *testing.T) {
@@ -136,8 +156,6 @@ func TestSimpleBufSeq_BufSize1024_ConcurrentClients256(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
-
-// NOTE: run these benchmarks with `go test -run=none -bench=. -cpu 1,8,32`
 
 func benchmarkSimpleBufSeq_SingleClient(bufSize int, b *testing.B) {
 	s := NewSimpleBufSeq(bufSize).Stream()
@@ -190,11 +208,12 @@ func ExampleSimpleBufSeq() {
 	ids := make([]seq.ID, 0)
 	for id := range s.Stream() {
 		ids = append(ids, id)
-		if id == 10 { // won't stop until 12: 11 & 12 are already buffered
+		if id == 10 {
 			_ = s.Close()
+			break
 		}
 	}
 	fmt.Println(ids)
 
-	// Output: [1 2 3 4 5 6 7 8 9 10 11 12]
+	// Output: [1 2 3 4 5 6 7 8 9 10]
 }

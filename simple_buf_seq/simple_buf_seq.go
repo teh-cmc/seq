@@ -12,8 +12,8 @@ import (
 // atomic, monotonically increasing 64bits value.
 //
 // A `SimpleBufSeq` is not particularly useful in and of itself; but it provides
-// a good performance baseline that can be used as a point of comparison for
-// more complex implementations.
+// a performance baseline that can later be used as a point of comparison
+// for more complex implementations.
 type SimpleBufSeq struct {
 	ids chan seq.ID
 
@@ -46,7 +46,7 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 				return
 			default:
 				select {
-				case ids <- id: // blocks once `seq` is full
+				case ids <- id: // feed as much `ID`s as the `bufSize` allows
 					id++
 				case <-stop: // stream has been closed, kill routine
 					return
@@ -60,14 +60,18 @@ func NewSimpleBufSeq(bufSize int) *SimpleBufSeq {
 }
 
 // Stream returns a pre-buffered, range-able stream of monotonically
-// increasing IDs, starting at `1`.
+// increasing IDs backed by a local atomic 64bits value, starting at `1`.
 func (ss SimpleBufSeq) Stream() seq.IDStream { return ss.ids }
 
-// Close closes the associated `IDStream`.
-// It always returns `nil`.
+// Close closes the associated `IDStream` and stops the background buffering
+// routine.
+//
+// Close always returns `nil`.
+//
+// Once closed, a `SimpleBufSeq` is not reusable.
 func (ss *SimpleBufSeq) Close() error {
-	close(ss.stop) // kill background routine
-	ss.wg.Wait()   // wait for it to be fully stopped
+	close(ss.stop) // kill background buffering routine..
+	ss.wg.Wait()   // ..and wait for it to be fully stopped
 	close(ss.ids)  // close `ID` stream
 	return nil     // always return `nil`
 }

@@ -7,8 +7,18 @@ It is a direct, heavily documented, tested & benchmarked implementation of the `
 **Table of contents**
 
 - [RRSeq](#rrseq)
+  - [Installing](#installing)
   - [Quickstart](#quickstart)
   - [Performance](#performance)
+
+## Installing
+
+The easiest way is to `go get` all the things:
+
+```
+go get -u github.com/teh-cmc/seq/...
+```
+:warning: This most likely will return a `no buildable Go source files` error. You can safely ignore it.
 
 ## Quickstart
 

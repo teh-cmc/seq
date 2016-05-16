@@ -65,7 +65,7 @@ Using these capabilities, it is quite straightforward to expose an atomic `get-a
 
 - Consistency & sequentiality guarantees  
   By using a quorum combined with a Leader/Followers model, the system can guarantee the generation of monotonically increasing IDs over time.
-- Fault-tolerancy
+- Fault-tolerancy  
   The system can and will stay available as long as N/2+1 (i.e. a quorum) nodes are still available.
 
 **cons**:

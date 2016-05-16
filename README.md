@@ -160,7 +160,7 @@ Although this model offers you great performance and linear horizontal scalabili
   - have more than 1024 machines in your cluster
   - handle more than 4096 queries per millisecond per machine
   - given a cluster of N machines, guarantee the ordering of M IDs that were generated within a range of N milliseconds
-- The system relies on wall-clock time
+- The system relies on wall-clock time  
   There is a *lot* of literature out there about the dangers of non-logical time in distributed systems (..even with a perfectly configured `ntpd`), so I won't go into details; check the `Further reading` section if you're curious about those things.
 
 #### Further reading

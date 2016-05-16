@@ -24,17 +24,12 @@ import (
 // -----------------------------------------------------------------------------
 
 // lockedID wraps a `seq.ID` in a mutex.
-//
-// NOTE: this lock is used whenever an `ID` is read from or written to.
 type lockedID struct {
 	*sync.RWMutex
 	id seq.ID
 }
 
 // lockedIDMap wraps a map of `lockedID`s in a mutex.
-//
-// NOTE: this lock is used whenever a `lockedID` has to be added or retrieved
-// from the map.
 type lockedIDMap struct {
 	*sync.RWMutex
 	ids map[string]*lockedID

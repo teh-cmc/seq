@@ -128,7 +128,8 @@ This solution offers the same exact pros & cons as the basic *consensus protocol
 The load is now evenly balanced between the nodes.
 
 The direct trade-off to this decentralized model is that it will induce cluster-wide "gaps" in the sequence every time a client tries to set an ID on N/2+1 nodes, and fails half way for whatever reason (e.g. cannot reach a quorum because another client concurrently wrote a new, higher value); which can be quite frequent with high concurrent load.  
-In the worst-case, with the right kind of traffic, this issue could lead to livelock kind of situation.
+In the worst-case, with the right kind of traffic, this issue could lead to livelock kind of situation for a non-deterministic period of time.  
+Notice that, as the size of the batches used increases, the concurrent load will drastically drop accordingly; thus making this spinning issue less and less prevalent.
 
 Of course, network & disk I/O, distributed lock contention et al. are still the main restraint to overall performance; but you really don't have a choice as long as you need a shared state between your nodes... Unless you go for the [Flake model](#the-flake-model), that is.
 

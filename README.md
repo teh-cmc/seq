@@ -73,7 +73,7 @@ Using these capabilities, it is quite straightforward to expose an atomic `get-a
 - Poor performance  
   Since every operation requires communication between nodes, most of the time is spent in costly network I/O.  
   Also, if the system wants to guarantee consistency even in the event of total failure (i.e. all nodes simultaneously go down), it *must* persist every increment to disk as they happen.  
-  This obviously leads to even worse performances, as the system now spends another significant part of its time doing disk I/O too.  
+  This obviously leads to even worse performances, as the system now spends another significant portion of its time doing disk I/O too.  
 - Uneven workload distribution  
   Due to the nature of the Leader/Followers model; a single node, the Leader, is in charge of handling all of the incoming traffic (e.g. serialization/deserialization of RPC requests).  
   This also means that, if the Leader dies, the whole system is unavailable for as long as it takes for a new Leader to be elected.
@@ -128,11 +128,11 @@ This solution offers the same exact pros & cons as the basic *consensus protocol
 The load is now evenly balanced between the nodes.
 
 The direct trade-off of this decentralized model is that it will induce cluster-wide "gaps" in the sequence every time a client tries to set an ID on N/2+1 nodes, and fails half way for whatever reason (e.g. cannot reach a quorum because another client concurrently wrote a new, higher value); which can be quite frequent with high concurrent load.  
-In the worst-case, and with the right (well, wrong, actually) kind of traffic, this issue could lead to livelock kind of situation that could last for a non-deterministic period of time.  
+In the worst-case, and with the right (well, wrong, actually) kind of traffic, this issue could lead to a livelock kind of situation that could last for a non-deterministic period of time.  
 Notice that, as the size of the batches used increases, the concurrent load will drastically drop accordingly; thus making this spinning issue less and less prevalent.  
 Other solutions exist to mitigate this issue even more, such as configuring concurrent clients with different batch sizes.
 
-Of course, network & disk I/O, distributed lock contention et al. are still the main restraint to overall performance; but you really don't have a choice as long as you need a shared state between your nodes... Unless you go for the [Flake model](#the-flake-model), that is.
+Of course, network & disk I/O, distributed lock contention et al. are still the main restraint to overall performance; but you really don't have a choice as long as you need a shared state between your nodes... But do you really? The [Flake model](#the-flake-model) is a possible answer to this question.
 
 Package [`RRSeq`](/rr_seq) is a direct, heavily documented, tested & benchmarked implementation of this leaderless strategy.
 
@@ -171,7 +171,7 @@ Although this model offers you great performance and linear horizontal scalabili
 #### Further reading
 
 - Justin Sheehy's ["There is No Now"](http://queue.acm.org/detail.cfm?id=2745385) is a great and thorough article regarding time in distributed environments.
-- Martin Kleppmann's [post about Redis' Redlock](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) is a fantastic analysis of how-so unfortunate timing issues can have serious consequences in distributed systems.
+- Martin Kleppmann's [post about Redis' Redlock](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) is a fantastic analysis of how how-so unfortunate timing issues can have serious consequences in distributed systems.
 - Mikito Takada (aka. Mixu)'s short book: ["Distributed systems: for fun and profit"](http://book.mixu.net/distsys/single-page.html) is a classic introduction to distributed systems with a section dedicated to the subject of timing and ordering assumptions.
 
 ## License ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=plastic)

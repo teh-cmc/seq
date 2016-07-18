@@ -1,3 +1,9 @@
+_This was originally made as an exercise as part of my interview process for joining [Zenly](https://zen.ly/)._
+
+_I thought it'd be good idea to opensource it, since it looked like a nice little introduction to some classic issues commonly faced in distributed systems; as well as a straightforward example of using the incredibly powerful `gRPC + Protobuf + Go's Context` trio to build distributed services._
+
+_If you're interested in joining us, Zenly is [hiring](https://zen.ly/join) in Paris, France!_
+
 # Seq ![Status](https://img.shields.io/badge/status-stable-green.svg?style=plastic) [![Build Status](http://img.shields.io/travis/teh-cmc/seq.svg?style=plastic)](https://travis-ci.org/teh-cmc/seq) [![Coverage Status](https://coveralls.io/repos/github/teh-cmc/seq/badge.svg?branch=master)](https://coveralls.io/github/teh-cmc/seq?branch=master) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=plastic)](http://godoc.org/github.com/teh-cmc/seq)
 
 This repository offers a gentle overview of the possible design solutions to the common problem of generating sequential / monotonically increasing IDs in a distributed system.
